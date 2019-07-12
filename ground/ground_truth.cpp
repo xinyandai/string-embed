@@ -30,10 +30,10 @@ int main(int argc, char *argv[]){
     omp_set_num_threads(numThread);
 #endif
 
-    string queryName("data/");
+    string queryName("");
     queryName += argv[1];
 
-    string dataName("data/");
+    string dataName("");
     dataName += argv[3];
 
     StringReader queryReader;
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]){
                                     data,  dataReader.getLine(),
                                     atoi(argv[5]), ss::editDist<double> ());
 
-    string outputFile("data/ground/");
+    string outputFile("");
     outputFile += argv[6];
     ss::GroundWriter::WriteIVECS<int, int> (outputFile.c_str(), knn);
     std::cout << ">> Finish finding ground truth! Output file: " << outputFile << "\n";
