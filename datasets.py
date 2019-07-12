@@ -1,7 +1,9 @@
+import warnings
 import torch
 import numpy as np
 from random import randint
 from torch.utils.data import Dataset
+
 
 def readlines(file):
     """
@@ -11,21 +13,32 @@ def readlines(file):
     lines = open(file, 'rb').read().splitlines()
     return [line.decode("utf8", "ignore") for line in lines]
 
-def word2vec(file):
+
+def word2vec(file, K=None):
     """
     :param file: the path to the file
     :return: 2-dimensional numpy array, of which each row denotes one string's one-hot coding
     """
     lines = readlines(file)
+
     lens = [len(line) for line in lines]
-    K = np.max(lens)
-    if K % 2 != 0 :
-        K += 1
+    if K is None:
+        K = np.max(lens)
+        if K % 2 != 0 :
+            K += 1
+    elif K < np.max(lens):
+        warnings.warn("K is {} while strings may "
+                      "exceed the maximum length {}"
+                      .format(K, np.max(lens)))
+
     x = np.zeros((len(lines), 256, K), np.float32)
     for i, line in enumerate(lines):
         for j, c in enumerate(line):
-            x[i, ord(c), j] = 1
+            if j < K:
+                x[i, ord(c), j] = 1
+
     return x.reshape((len(lines), 256 * K)), lens
+
 
 def ivecs_read(file):
     """
@@ -38,14 +51,13 @@ def ivecs_read(file):
 
 
 class TripletString(Dataset):
-    def __init__(self, words, knn):
-        self.strings, self.lens = word2vec(words)
-        self.knn = ivecs_read(knn)
+    def __init__(self, strings, lens, knn, K=50):
+        self.strings, self.lens, self.knn = strings, lens, knn
         self.N, self.D = self.strings.shape
         self.N, self.K = self.knn.shape
         self.strings = torch.from_numpy(self.strings[:self.N, :])
 
-        self.K = 50
+        self.K = K
         self.counter = 0
         self.index = np.arange(self.N)
 
@@ -66,6 +78,7 @@ class TripletString(Dataset):
 
     def __len__(self):
         return self.N
+
 
 class PaiswiseString(Dataset):
     pass

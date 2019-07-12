@@ -37,6 +37,7 @@ class FCNEmbedding(nn.Module):
         embedding = self.linear2(h_activate)
         return embedding
 
+
 class TripletNet(nn.Module):
     def __init__(self, embedding_net):
         super(TripletNet, self).__init__()
