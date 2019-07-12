@@ -23,7 +23,7 @@ def main():
     query = open("word/query.txt", "w")
     train = open("word/train.txt", "w")
     base = open("word/base.txt", "w")
-    print(lines)
+
     writelines(query, lines[:num_query])
     writelines(train, lines[num_query: num_query + num_train])
     writelines(base, lines[num_query + num_train : num_query + num_train + num_base])
