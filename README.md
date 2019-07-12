@@ -1,7 +1,5 @@
-## String Embedding
-# prepare data
-- sample train/base/query data from "data/word/word"
-
+# String Embedding
+### sample train/base/query data from "data/word/word"
 
     cd data/word
     python generate.py
@@ -14,8 +12,7 @@
         ├── train.txt
         └── word
 
-- compute ground truth and knn
-
+### compute ground truth and knn
 
     cd ground
     make 
@@ -34,10 +31,8 @@
         └── word
 
 
-- start training
-
+### start training
 
     pyhton main.py
-
 
 
