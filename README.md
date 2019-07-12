@@ -34,7 +34,10 @@
         └── word
 
 
-- we have the following files
+- start training
+
+
+    pyhton main.py
 
 
 
