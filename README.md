@@ -1,7 +1,7 @@
 # String Embedding
 ### sample train/base/query data from "data/word/word"
 
-    cd data/word
+    cd data
     python generate.py
     tree 
     .
