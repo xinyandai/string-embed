@@ -1,17 +1,14 @@
-import math
-import torch
-import numpy as np
 import torch.optim as optim
 
 from networks import TripletNet
 from networks import TripletLoss
-from networks import CNNEmbedding as EmbeddingNet
+from networks import TwoLayerCNN as EmbeddingNet
 
 def train_epoch(epoch, train_loader, device):
     N = len(train_loader)
-    D = train_loader.D
+    C, M = train_loader.C, train_loader.M
 
-    model = TripletNet(EmbeddingNet(D).to(device)).to(device)
+    model = TripletNet(EmbeddingNet(C, M).to(device)).to(device)
     losser = TripletLoss()
 
     epochs = [0, 5]

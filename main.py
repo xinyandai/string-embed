@@ -46,12 +46,13 @@ def _batch_embed(net, vecs, device):
 
 
 def main(epoch):
-    train_knn = ivecs_read("data/word/knn.ivecs")
-    K = 30
-    xb, nb = word2vec("data/word/base.txt", K=K)
-    xt, nt =  word2vec("data/word/train.txt", K=K)
-    xq, nq =  word2vec("data/word/query.txt", K=K)[:100]
-    gt = ivecs_read("data/word/gt.ivecs")[:100]
+    dataset = "word"
+    train_knn = ivecs_read("data/%s/knn.ivecs" % dataset)
+    K = 32
+    xb, nb = word2vec("data/%s/base.txt" % dataset, K=K)
+    xt, nt =  word2vec("data/%s/train.txt" % dataset, K=K)
+    xq, nq =  word2vec("data/%s/query.txt" % dataset, K=K)[:100]
+    gt = ivecs_read("data/%s/gt.ivecs" % dataset)[:100]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_loader = TripletString(xt, nt, train_knn)
 
@@ -62,4 +63,4 @@ def main(epoch):
 
     test_recall(item, query, gt)
 
-main(0)
+main(10)

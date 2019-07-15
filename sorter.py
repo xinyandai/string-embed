@@ -1,3 +1,4 @@
+import sys
 import tqdm
 import numpy as np
 import numba as nb
@@ -41,7 +42,7 @@ def parallel_sort(metric, X, Q):
     top_k = get_top_k(X)
     rank = np.empty((Q.shape[0], top_k), dtype=np.int32)
 
-    p_range = tqdm.tqdm(nb.prange(Q.shape[0]))
+    p_range = tqdm.tqdm(nb.prange(Q.shape[0]), file=sys.stdout)
 
     if metric == 'product':
         for i in p_range:

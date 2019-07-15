@@ -31,13 +31,13 @@ def word2vec(file, K=None):
                       "exceed the maximum length {}"
                       .format(K, np.max(lens)))
 
-    x = np.zeros((len(lines), 256, K), np.float32)
+    x = np.zeros((len(lines), 26, K), np.float32)
     for i, line in enumerate(lines):
         for j, c in enumerate(line):
             if j < K:
-                x[i, ord(c), j] = 1
+                x[i, ord(c)-ord('a'), j] = 1
 
-    return x.reshape((len(lines), 256 * K)), lens
+    return x, lens
 
 
 def ivecs_read(file):
@@ -53,9 +53,9 @@ def ivecs_read(file):
 class TripletString(Dataset):
     def __init__(self, strings, lens, knn, K=50):
         self.strings, self.lens, self.knn = strings, lens, knn
-        self.N, self.D = self.strings.shape
+        self.N, self.C, self.M = self.strings.shape
         self.N, self.K = self.knn.shape
-        self.strings = torch.from_numpy(self.strings[:self.N, :])
+        self.strings = torch.from_numpy(self.strings)
 
         self.K = K
         self.counter = 0
@@ -72,9 +72,9 @@ class TripletString(Dataset):
         anchor = self.index[idx]
         positive = self.knn[anchor, randint(0, self.K-1)]
         negative = self.knn[anchor, randint(self.K, self.N-1)]
-        return self.strings[anchor], \
-               self.strings[positive], \
-               self.strings[negative]
+        return self.strings[anchor:anchor+1], \
+               self.strings[positive:positive+1], \
+               self.strings[negative:negative+1]
 
     def __len__(self):
         return self.N

@@ -2,30 +2,35 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class CNNEmbedding(nn.Module):
-    def __init__(self, D_in, embedding=32):
-        super(CNNEmbedding, self).__init__()
-        self.D_in = D_in
+
+class TwoLayerCNN(nn.Module):
+    def __init__(self, C, M, embedding=32):
+        super(TwoLayerCNN, self).__init__()
+        self.C = C
+        self.M = M
         self.embedding = embedding
-        self.conv1 = nn.Conv1d(1, 5, 3, 1)
-        self.flat_size = (D_in // 2 - 1) * 5
+        self.conv1 = nn.Conv1d(1, 8, 3, 1, padding=1, bias=False)
+        self.flat_size = M // 2  * C * 8
         self.fc1 = nn.Linear(self.flat_size, embedding)
 
     def forward(self, x):
-        x = x.view(-1, 1, self.D_in)
+        N, C, M  = x.shape
+        x = x.view(N * C, 1, M)
 
         x = F.relu(self.conv1(x))
         x = F.max_pool1d(x, 2)
 
-        x = x.view(-1, self.flat_size)
+
+        x = x.view(N, self.flat_size)
         x = self.fc1(x)
 
         return x
 
 
 class FCNEmbedding(nn.Module):
-    def __init__(self, D_in, H=256, embedding=32):
+    def __init__(self, C, M, H=256, embedding=32):
         super(FCNEmbedding, self).__init__()
+        D_in = C * M
         self.D_in = D_in
         self.embedding = embedding
         self.linear1 = nn.Linear(D_in, H)
@@ -57,7 +62,8 @@ class TripletLoss(nn.Module):
 
     def forward(self, x,):
         anchor, positive, negative = x
-        losses = self.dist(anchor, positive) - self.dist(anchor, negative)
+        losses = self.dist(anchor, positive) \
+                 - self.dist(anchor, negative)
         return F.relu(losses + 1.0)
 
 
