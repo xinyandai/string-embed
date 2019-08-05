@@ -9,18 +9,40 @@ class TwoLayerCNN(nn.Module):
         self.C = C
         self.M = M
         self.embedding = embedding
-        self.conv1 = nn.Conv1d(1, 8, 3, 1, padding=1, bias=False)
-        self.flat_size = M // 2  * C * 8
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+
+        )
+        self.flat_size = M // 1024  * C * 8
         self.fc1 = nn.Linear(self.flat_size, embedding)
 
-    def forward(self, x):
-        N, C, M  = x.shape
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M  = x.shape
+        else:
+            N = 1
+            C, M = x.shape
         x = x.view(N * C, 1, M)
-
-        x = F.relu(self.conv1(x))
-        x = F.max_pool1d(x, 2)
-
-
+        x = self.conv(x)
         x = x.view(N, self.flat_size)
         x = self.fc1(x)
 

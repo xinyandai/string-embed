@@ -1,3 +1,4 @@
+import sys
 import warnings
 import torch
 import numpy as np
@@ -14,7 +15,7 @@ def readlines(file):
     return [line.decode("utf8", "ignore") for line in lines]
 
 
-def word2vec(file, K=None):
+def word2vec(file, max_length=None, C=ord('~') - ord(' ') + 2, first=' '):
     """
     :param file: the path to the file
     :return: 2-dimensional numpy array, of which each row denotes one string's one-hot coding
@@ -22,22 +23,18 @@ def word2vec(file, K=None):
     lines = readlines(file)
 
     lens = [len(line) for line in lines]
-    if K is None:
-        K = np.max(lens)
-        if K % 2 != 0 :
-            K += 1
-    elif K < np.max(lens):
+    if max_length is None:
+        max_length = np.max(lens)
+        if max_length % 2 != 0 :
+            max_length += 1
+    elif max_length < np.max(lens):
         warnings.warn("K is {} while strings may "
                       "exceed the maximum length {}"
-                      .format(K, np.max(lens)))
+                      .format(max_length, np.max(lens)))
 
-    x = np.zeros((len(lines), 26, K), np.float32)
-    for i, line in enumerate(lines):
-        for j, c in enumerate(line):
-            if j < K:
-                x[i, ord(c)-ord('a'), j] = 1
-
-    return x, lens
+    x = [[ord(c)-ord(first) + 1 for c in line]
+         for line in lines]
+    return OneHotString(C, max_length, x, lines), lens
 
 
 def ivecs_read(file):
@@ -50,14 +47,28 @@ def ivecs_read(file):
     return a.reshape(-1, d + 1)[:, 1:].copy()
 
 
+class OneHotString(Dataset):
+    def __init__(self, C, M, ascii, lines):
+        self.C, self.M = C, M
+        self.ascii = ascii
+        self.lines = lines
+
+    def __getitem__(self, index):
+        encode = np.zeros((self.C, self.M), dtype=np.float32)
+        encode[np.array(self.ascii[index]),
+               np.arange(len(self.ascii[index]))] = 1.0
+        return torch.from_numpy(encode)
+
+    def __len__(self):
+        return len(self.ascii)
+
+
 class TripletString(Dataset):
     def __init__(self, strings, lens, knn, K=50):
         self.strings, self.lens, self.knn = strings, lens, knn
-        self.N, self.C, self.M = self.strings.shape
+        self.N, self.C, self.M = len(strings), strings.C, strings.M
         self.N, self.K = self.knn.shape
-        self.strings = torch.from_numpy(self.strings)
-
-        self.K = K
+        self.K = min(K, self.K)
         self.counter = 0
         self.index = np.arange(self.N)
 
@@ -72,13 +83,13 @@ class TripletString(Dataset):
         anchor = self.index[idx]
         positive = self.knn[anchor, randint(0, self.K-1)]
         negative = self.knn[anchor, randint(self.K, self.N-1)]
-        return self.strings[anchor:anchor+1], \
-               self.strings[positive:positive+1], \
-               self.strings[negative:negative+1]
+        return self.strings[anchor], \
+               self.strings[positive], \
+               self.strings[negative]
 
     def __len__(self):
         return self.N
 
 
-class PaiswiseString(Dataset):
+class PairwiseString(Dataset):
     pass

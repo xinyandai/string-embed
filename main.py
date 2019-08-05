@@ -1,11 +1,13 @@
+import tqdm
 import math
 import torch
+import argparse
 import numpy as np
+import numba as nb
 from trainer import train_epoch
 from sorter import parallel_sort
-from datasets import ivecs_read
-from datasets import word2vec
-from datasets import TripletString
+from datasets import ivecs_read, readlines, \
+    word2vec, TripletString, OneHotString
 
 
 def intersect(gs, ids):
@@ -34,33 +36,57 @@ def test_recall(X, Q, G):
             print("%.4f \t" % (rc / float(top_k)), end="")
         print()
 
-
-def _batch_embed(net, vecs, device):
-    chunk_size = 100
-    embedding = np.empty(shape=(len(vecs), net.embedding))
-    for i in range(math.ceil(len(vecs) / chunk_size)):
-        sub = vecs[i * chunk_size: (i + 1) * chunk_size, :]
-        embedding[i * chunk_size: (i + 1) * chunk_size, :] = \
-            net(torch.from_numpy(sub).to(device)).cpu().data.numpy()
+@nb.jit
+def _batch_embed(args, net, vecs: OneHotString, device):
+    embedding = np.empty(shape=(len(vecs), args.embed_dim))
+    for i in tqdm.tqdm(nb.prange(len(vecs))):
+        embedding[i, :] = net(vecs[i].to(device)).cpu().data.numpy()
     return embedding
 
 
-def main(epoch):
-    dataset = "word"
+dataset = "enron"
+K = 65536
+# dataset = "word"
+# K = 32
+
+def run_from_train(args):
+    print("# loading data")
     train_knn = ivecs_read("data/%s/knn.ivecs" % dataset)
-    K = 32
-    xb, nb = word2vec("data/%s/base.txt" % dataset, K=K)
-    xt, nt =  word2vec("data/%s/train.txt" % dataset, K=K)
-    xq, nq =  word2vec("data/%s/query.txt" % dataset, K=K)[:100]
+    xb, nb = word2vec("data/%s/base.txt" % dataset, max_length=K)
+    xt, nt =  word2vec("data/%s/train.txt" % dataset, max_length=K)
+    xq, nq = word2vec("data/%s/query.txt" % dataset, max_length=K)
     gt = ivecs_read("data/%s/gt.ivecs" % dataset)[:100]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda
+                          else "cpu")
     train_loader = TripletString(xt, nt, train_knn)
 
-    model = train_epoch(epoch, train_loader, device)
+    print("# training")
+    model = train_epoch(args, train_loader, device)
 
-    item = _batch_embed(model.embedding_net, xb, device)
-    query = _batch_embed(model.embedding_net, xq, device)
+    print("# embedding")
+    item = _batch_embed(args, model.embedding_net, xb, device)
+    query = _batch_embed(args, model.embedding_net, xq, device)
 
     test_recall(item, query, gt)
 
-main(10)
+
+def statistic():
+    lines = readlines("data/%s/%s" % (dataset, dataset))
+    lens = list(map(len, lines))
+    ords = np.hstack([[ord(c) for c in line] for line in lines])
+    print(np.max(lens), np.min(lens), np.mean(lens))
+    print(ords.shape)
+    print(np.max(ords.reshape(-1)), np.min(ords.reshape(-1)))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='HyperParameters for String Embedding')
+    parser.add_argument('--epochs', type=int, default=4,
+                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--embed-dim', type=int, default=32,
+                        help='embedding dimension')
+    parser.add_argument('--no-cuda', action='store_true', default=False,
+                        help='disables GPU training')
+    args = parser.parse_args()
+    run_from_train(args)

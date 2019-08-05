@@ -1,8 +1,11 @@
 import sys
 import tqdm
+import warnings
 import numpy as np
 import numba as nb
+from numba.errors import  NumbaWarning
 
+warnings.simplefilter('ignore', category=NumbaWarning)
 
 def get_top_k(X):
     """
