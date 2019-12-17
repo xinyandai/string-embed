@@ -1,39 +1,64 @@
-import tqdm
+import time
 import torch.optim as optim
 
+from tqdm import tqdm
 from networks import TripletNet
 from networks import TripletLoss
-from networks import TwoLayerCNN as EmbeddingNet
+from networks import TwoLayerCNN, MultiLayerCNN
+
+
+def updateLearningRate(optimizer, learning_rate):
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = learning_rate
+
 
 def train_epoch(args, train_loader, device):
     N = len(train_loader)
     C, M = train_loader.C, train_loader.M
 
-    model = TripletNet(EmbeddingNet(C, M, embedding=args.embed_dim).to(device)).to(device)
+    if args.dataset == "word":
+        EmbeddingNet = TwoLayerCNN
+    else:
+        EmbeddingNet = MultiLayerCNN
+    net = EmbeddingNet(C, M, embedding=args.embed_dim).to(device)
+    model = TripletNet(net).to(device)
     losser = TripletLoss()
-
-    epochs = [0, 4]
-    lrs = [0.001, 0.0001]
-    momentum = 0.9
     model.train()
-    with tqdm.tqdm(total=N * args.epochs) as p_bar:
-        for epoch in range(args.epochs):
-            for i_epoch, i_lr in zip(epochs, lrs):
-                if epoch == i_epoch:
-                    optimizer = optim.SGD(model.parameters(), lr=i_lr,
-                                          momentum=momentum, weight_decay=5e-4)
-            agg = 0.0
-            for idx in range(N):
-                p_bar.update(1)
-                x = train_loader[idx]
-                x = (i.to(device) for i in x)
-                optimizer.zero_grad()
-                output = model(x)
-                loss = losser(output)
-                loss.backward()
-                optimizer.step()
-                agg += loss.item()
-                # print('Train Epoch: {} Loss: {:.6f}'.format(epoch, loss.item()))
-            print('Train Epoch: {} Loss: {:.6f}'.format(epoch, agg / float(N)))
+    momentum = 0.9
+    lrs = {0: 0.001, 10: 0.001, 5: 0.0001, 15: 0.0001}
+    optimizer = optim.SGD(
+        model.parameters(), lr=0.001, momentum=momentum, weight_decay=5e-4
+    )
 
-        return model
+    for epoch in range(args.epochs):
+        if epoch in lrs:
+            updateLearningRate(optimizer, lrs[epoch] / args.batch_size)
+        agg = 0.0
+        optimizer.zero_grad()
+        with tqdm(range(N), desc="# training") as p_bar:
+            start_time = time.time()
+            for idx in p_bar:
+                x, dists = train_loader[idx]
+                x = (i.to(device) for i in x)
+
+                output = model(x)
+                loss = losser(output, dists, epoch)
+                loss.backward()
+
+                if idx % args.batch_size == 0 or idx == N - 1:
+                    optimizer.step()
+                    optimizer.zero_grad()
+                agg += loss.item()
+                p_bar.set_description(
+                    str({"Train Epoch": epoch, "Loss": agg / float(idx + 1)})
+                )
+
+            print(
+                {
+                    "# Train Epoch": epoch,
+                    "Loss": agg / float(N),
+                    "Time": time.time() - start_time,
+                }
+            )
+
+    return model

@@ -3,9 +3,10 @@ import tqdm
 import warnings
 import numpy as np
 import numba as nb
-from numba.errors import  NumbaWarning
+from numba.errors import NumbaWarning
 
-warnings.simplefilter('ignore', category=NumbaWarning)
+warnings.simplefilter("ignore", category=NumbaWarning)
+
 
 def get_top_k(X):
     """
@@ -13,7 +14,7 @@ def get_top_k(X):
     :param X:
     :return:
     """
-    return min(131072, len(X) - 1)
+    return min(524288, len(X) - 1)
 
 
 @nb.jit
@@ -47,7 +48,7 @@ def parallel_sort(metric, X, Q):
 
     p_range = tqdm.tqdm(nb.prange(Q.shape[0]), file=sys.stdout)
 
-    if metric == 'product':
+    if metric == "product":
         for i in p_range:
             rank[i, :] = product_arg_sort(Q[i], X, top_k)
     else:

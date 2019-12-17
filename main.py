@@ -1,92 +1,122 @@
+import os
+import time
 import tqdm
-import math
-import torch
+import pickle
 import argparse
 import numpy as np
-import numba as nb
-from trainer import train_epoch
-from sorter import parallel_sort
-from datasets import ivecs_read, readlines, \
-    word2vec, TripletString, OneHotString
+
+from multiprocessing import cpu_count
+
+from embed_cnn import cnn_embedding
+from embed_cgk import cgk_embedding
+from datasets import readlines, word2sig, StringDataset, all_pair_distance
 
 
-def intersect(gs, ids):
-    rc = np.mean([
-        len(np.intersect1d(g, list(id)))
-        for g, id in zip(gs, ids)])
-    return rc
+def get_knn(dist):
+    knn = np.empty(dtype=np.int32, shape=(len(dist), len(dist[0])))
+    for i in tqdm.tqdm(range(len(dist)), desc="# sorting for KNN indices"):
+        knn[i, :] = np.argsort(dist[i, :])
+    return knn
 
 
-def test_recall(X, Q, G):
-    ks = [1, 5, 10, 20, 50, 100, 1000]
-    Ts = [2 ** i for i in range(2 + int(math.log2(len(X))))]
+def get_dist_knn(queries, base=None):
+    if base is None:
+        base = queries
 
-    sort_idx = parallel_sort("euclid", X, Q)
-
-    print(" Probed \t Items \t", end="")
-    for top_k in ks:
-        print("top-%d\t" % (top_k), end="")
-    print()
-    for t in Ts:
-        ids = sort_idx[:, :t]
-        items = np.mean([len(id) for id in ids])
-        print("%6d \t %6d \t" % (t, items), end="")
-        for top_k in ks:
-            rc = intersect(G[:, :top_k], ids)
-            print("%.4f \t" % (rc / float(top_k)), end="")
-        print()
-
-@nb.jit
-def _batch_embed(args, net, vecs: OneHotString, device):
-    embedding = np.empty(shape=(len(vecs), args.embed_dim))
-    for i in tqdm.tqdm(nb.prange(len(vecs))):
-        embedding[i, :] = net(vecs[i].to(device)).cpu().data.numpy()
-    return embedding
+    dist = all_pair_distance(queries, base, cpu_count())
+    return dist, get_knn(dist)
 
 
-dataset = "enron"
-K = 65536
-# dataset = "word"
-# K = 32
+class DataHandler:
+    def __init__(self, dataset, n_t, n_q):
+        self.dataset = dataset
+        self.nt = n_t
+        self.nq = n_q
+
+        lines = readlines("data/{}".format(dataset))
+        self.ni = len(lines)
+        self.nb = self.ni - self.nq - self.nt
+
+        start_time = time.time()
+        self.C, self.M, self.char_ids = word2sig(lines, max_length=None)
+        print("# Loading time: {}".format(time.time() - start_time))
+        idx = np.arange(self.ni)
+        np.random.shuffle(idx)
+        self.train_ids = idx[: self.nt]
+        self.query_ids = idx[self.nt : self.nq + self.nt]
+        self.base_ids = idx[self.nq + self.nt :]
+
+        self.train_dist, self.train_knn = get_dist_knn(
+            [lines[i] for i in self.train_ids]
+        )
+        self.query_dist, self.query_knn = get_dist_knn(
+            [lines[i] for i in self.query_ids], [lines[i] for i in self.base_ids]
+        )
+
+        print(
+            "# Unique signature     : {}\n".format(self.C),
+            "# Maximum length       : {}\n".format(self.M),
+            "# Sampled Train Items  : {}\n".format(self.nt),
+            "# Sampled Query Items  : {}\n".format(self.nq),
+            "# Number of Base Items : {}\n".format(self.nb),
+            "# Number of Items : {}\n".format(self.ni),
+        )
+
+        self.xt = StringDataset(
+            self.C, self.M, [self.char_ids[i] for i in self.train_ids]
+        )
+        self.xq = StringDataset(
+            self.C, self.M, [self.char_ids[i] for i in self.query_ids]
+        )
+        self.xb = StringDataset(
+            self.C, self.M, [self.char_ids[i] for i in self.base_ids]
+        )
+
+    def set_nb(self, nb):
+        if nb != len(self.base_ids):
+            self.base_ids = self.base_ids[:nb]
+            self.query_dist = self.query_dist[:, :nb]
+            self.query_knn = get_knn(self.query_dist)
+            self.xb.sig = self.xb.sig[:nb]
+
 
 def run_from_train(args):
-    print("# loading data")
-    train_knn = ivecs_read("data/%s/knn.ivecs" % dataset)
-    xb, nb = word2vec("data/%s/base.txt" % dataset, max_length=K)
-    xt, nt =  word2vec("data/%s/train.txt" % dataset, max_length=K)
-    xq, nq = word2vec("data/%s/query.txt" % dataset, max_length=K)
-    gt = ivecs_read("data/%s/gt.ivecs" % dataset)[:100]
-    device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda
-                          else "cpu")
-    train_loader = TripletString(xt, nt, train_knn)
+    data_file = "data/{}_nt{}_nq{}".format(args.dataset, args.nt, args.nq)
 
-    print("# training")
-    model = train_epoch(args, train_loader, device)
-
-    print("# embedding")
-    item = _batch_embed(args, model.embedding_net, xb, device)
-    query = _batch_embed(args, model.embedding_net, xq, device)
-
-    test_recall(item, query, gt)
+    if os.path.isfile(data_file):
+        f = open(data_file, "rb")
+        h = pickle.load(f)
+    else:
+        h = DataHandler(args.dataset, args.nt, args.nq)
+        f = open(data_file, "wb")
+        pickle.dump(h, f)
+    h.set_nb(args.nb)
+    if args.embed == "cnn":
+        cnn_embedding(args, h)
+    elif args.embed == "cgk":
+        cgk_embedding(args, h)
 
 
-def statistic():
-    lines = readlines("data/%s/%s" % (dataset, dataset))
-    lens = list(map(len, lines))
-    ords = np.hstack([[ord(c) for c in line] for line in lines])
-    print(np.max(lens), np.min(lens), np.mean(lens))
-    print(ords.shape)
-    print(np.max(ords.reshape(-1)), np.min(ords.reshape(-1)))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="HyperParameters for String Embedding")
 
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='HyperParameters for String Embedding')
-    parser.add_argument('--epochs', type=int, default=4,
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--embed-dim', type=int, default=32,
-                        help='embedding dimension')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables GPU training')
+    parser.add_argument("--dataset", type=str, default=None, help="dataset")
+    parser.add_argument(
+        "--nt", type=int, default=1000, help="number of training samples"
+    )
+    parser.add_argument("--nq", type=int, default=100, help="number of query items")
+    parser.add_argument("--nb", type=int, default=50000, help="number of query items")
+    parser.add_argument(
+        "--epochs", type=int, default=4, help="number of epochs to train"
+    )
+    parser.add_argument("--batch-size", type=int, default=64, help="batch size for sgd")
+    parser.add_argument(
+        "--embed-dim", type=int, default=128, help="embedding dimension"
+    )
+    parser.add_argument("--save-model", type=bool, default=False, help="save cnn model")
+    parser.add_argument("--embed", type=str, default="cnn", help="embedding method")
+    parser.add_argument(
+        "--no-cuda", action="store_true", default=False, help="disables GPU training"
+    )
     args = parser.parse_args()
     run_from_train(args)
