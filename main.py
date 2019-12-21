@@ -1,12 +1,12 @@
 import os
 import time
 import tqdm
-import pickle
 import argparse
 import numpy as np
 
 from multiprocessing import cpu_count
 
+from utils import l2_dist
 from embed_cnn import cnn_embedding
 from embed_cgk import cgk_embedding
 from datasets import readlines, word2sig, StringDataset, all_pair_distance
@@ -122,17 +122,16 @@ class DataHandler:
             self.query_knn = get_knn(self.query_dist)
             self.xb.sig = self.xb.sig[:nb]
 
+
 def analyze(q, x, ed):
-    x = x.T
-    sqr_q = np.sum(q ** 2, axis=1, keepdims=True)
-    sqr_x = np.sum(x ** 2, axis=0, keepdims=True)
-    l2 = np.sqrt(sqr_q + sqr_x - 2 *(q @ x))
+    l2 = l2_dist(q, x)
 
     from matplotlib import pyplot as plt
     idx = np.random.choice(np.size(ed), 1000)
     plt.scatter(ed.reshape(-1)[idx], l2.reshape(-1)[idx], color='r')
     plt.title(args.dataset)
     plt.show()
+
 
 def get_args():
     parser = argparse.ArgumentParser(description="HyperParameters for String Embedding")

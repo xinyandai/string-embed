@@ -1,12 +1,39 @@
 import argparse
 import numpy as np
+
+from utils import l2_dist
 from embed_cnn import test_recall
 
+
 def topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist):
-    test_recall(xb, xq[:100], query_knn_[:100, :])
+    test_recall(xb, xq, query_knn_)
+
+
+def linear_fit(x, y):
+    weights = np.polyfit(x, y, deg=1)
+    poly1d_fn = np.poly1d(weights)
+    return poly1d_fn
+
 
 def ann(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist):
-    pass
+    scales = [1, 2, 4, 8, 16, 32, 64]
+    thresholds = [1, 5, 10, 15, 20, 25, 50, 75, 100, 125, 150]
+    train_dist_l2 = l2_dist(xt, xt)
+    query_dist_l2 = l2_dist(xq, xb)
+    threshold2dist = linear_fit(train_dist, train_dist_l2)
+    print(" threshold\t threshold_l2\t", end='')
+    for scale in scales:
+        print("%d \t" % scale, end='')
+    for threshold in thresholds:
+        gt = [np.argwhere(dist <= threshold) for dist in query_dist]
+        threshold_l2 = threshold2dist(threshold)
+        print("{}\t {}\t".format(threshold, threshold_l2), end=',\t ')
+        for scale in scales:
+            items = [np.argwhere(dist <= threshold_l2 * scale) for dist in query_dist_l2]
+            recall = np.mean([len(np.intersect1d(i, j)) / len(i) for i, j in zip(gt, items)])
+            print("%.4f \t" % recall, end='')
+        print()
+
 
 def load_vec():
     parser = argparse.ArgumentParser(description="HyperParameters for String Embedding")
@@ -51,8 +78,10 @@ def load_vec():
         # TODO bugs to fix
         xq, xt = xt, xq
 
-    topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
+    xq = xq[:100, :]
+    xb = xb[:100, :]
     ann(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
+    topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
 
 
 if __name__ == "__main__":
