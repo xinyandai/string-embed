@@ -28,36 +28,37 @@ class TwoLayerPool(nn.Module):
 
 
 class MultiLayerCNN(nn.Module):
-    def __init__(self, C, M, embedding=32):
+    def __init__(self, C, M, embedding, channel):
         super(MultiLayerCNN, self).__init__()
         self.C = C
         self.M = M
         self.embedding = embedding
+
         self.conv = nn.Sequential(
-            nn.Conv1d(1, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
-            nn.Conv1d(8, 8, 3, 1, padding=1, bias=False),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
         )
 
         # Size after pooling
-        self.flat_size = M // 1024 * C * 8
+        self.flat_size = M // 1024 * C * channel
         print("self.flat_size ", self.flat_size)
         self.fc1 = nn.Linear(self.flat_size, embedding)
 
@@ -69,7 +70,45 @@ class MultiLayerCNN(nn.Module):
             C, M = x.shape
         x = x.view(N * C, 1, M)
         x = self.conv(x)
-        # Size: (n * c, 8, M // 1024)
+        # print(x.size())
+        x = x.view(N, self.flat_size)
+        x = self.fc1(x)
+
+        return x
+
+
+class QuerylogCNN(nn.Module):
+    def __init__(self, C, M, embedding, channel):
+        super(QuerylogCNN, self).__init__()
+        self.C = C
+        self.M = M
+        self.embedding = embedding
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+        )
+
+        # Size after pooling
+        self.flat_size = M // 32 * C * channel
+        print("self.flat_size ", self.flat_size)
+        self.fc1 = nn.Linear(self.flat_size, embedding)
+
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M = x.shape
+        else:
+            N = 1
+            C, M = x.shape
+        x = x.view(N * C, 1, M)
+        x = self.conv(x)
         # print(x.size())
         x = x.view(N, self.flat_size)
         x = self.fc1(x)
@@ -78,13 +117,13 @@ class MultiLayerCNN(nn.Module):
 
 
 class TwoLayerCNN(nn.Module):
-    def __init__(self, C, M, embedding=32):
+    def __init__(self, C, M, embedding, channel):
         super(TwoLayerCNN, self).__init__()
         self.C = C
         self.M = M
         self.embedding = embedding
-        self.conv1 = nn.Conv1d(1, 8, 3, 1, padding=1, bias=False)
-        self.flat_size = M // 2 * C * 8
+        self.conv1 = nn.Conv1d(1, channel, 3, 1, padding=1, bias=False)
+        self.flat_size = M // 2 * C * channel
         self.fc1 = nn.Linear(self.flat_size, embedding)
 
     def forward(self, x):
@@ -104,22 +143,6 @@ class TwoLayerCNN(nn.Module):
         return x
 
 
-class FCNEmbedding(nn.Module):
-    def __init__(self, C, M, H=256, embedding=32):
-        super(FCNEmbedding, self).__init__()
-        D_in = C * M
-        self.D_in = D_in
-        self.embedding = embedding
-        self.linear1 = nn.Linear(D_in, H)
-        self.linear2 = nn.Linear(H, embedding)
-
-    def forward(self, x):
-        x = x.view(-1, self.D_in)
-        h_activate = F.relu(self.linear1(x))
-        embedding = self.linear2(h_activate)
-        return embedding
-
-
 class TripletNet(nn.Module):
     def __init__(self, embedding_net):
         super(TripletNet, self).__init__()
@@ -133,30 +156,42 @@ class TripletNet(nn.Module):
 class TripletLoss(nn.Module):
     def __init__(self):
         super(TripletLoss, self).__init__()
-        self.dist = nn.PairwiseDistance(p=2)
         self.l, self.r = 1, 1
         self.Ls = {
             0: (0, 1),
-            20: (0.2, 0.8),
-            25: (0.5, 0.5),
-            30: (0.8, 0.2),
-            35: (1.0, 0),
+            15: (1, 0.1),
+            25: (10, 0.1),
+            35: (10, 0.01),
         }
 
-    def forward(self, x, dists, epoch):
+    def dist(self, ins, pos):
+        return torch.norm(ins - pos, dim=1)
+
+    def forward(self, x, lens, dists, epoch):
         if epoch in self.Ls:
             self.l, self.r = self.Ls[epoch]
         anchor, positive, negative = x
+        anchor_len, pos_len, neg_len = lens
         pos_dist, neg_dist, pos_neg_dist = dists
+
+        anchor_embed_norm = torch.norm(anchor, dim=1)
+        pos_embed_norm = torch.norm(positive, dim=1)
+        neg_embed_norm = torch.norm(negative, dim=1)
+
         pos_embed_dist = self.dist(anchor, positive)
         neg_embed_dist = self.dist(anchor, negative)
         pos_neg_embed_dist = self.dist(positive, negative)
 
-        threshold = 0.1 + neg_dist - pos_dist
+        threshold = neg_dist - pos_dist
         rank_loss = F.relu(pos_embed_dist - neg_embed_dist + threshold)
-        mse_loss = (
-            (pos_embed_dist - pos_dist) ** 2
-            + (neg_embed_dist - neg_dist) ** 2
-            + (pos_neg_embed_dist - pos_neg_dist) ** 2
-        )
-        return self.l * rank_loss + self.r * mse_loss
+        norm_loss = (anchor_embed_norm - anchor_len) ** 2 + \
+                    (pos_embed_norm - pos_len) ** 2 + \
+                    (neg_embed_norm - neg_len) ** 2
+        mse_loss = (pos_embed_dist - pos_dist) ** 2 + \
+                   (neg_embed_dist - neg_dist) ** 2 + \
+                   (pos_neg_embed_dist - pos_neg_dist) ** 2
+
+        return torch.mean(rank_loss), \
+               torch.mean(mse_loss), \
+               torch.mean(self.l * rank_loss +
+                          self.r * (0.001 * norm_loss + mse_loss))

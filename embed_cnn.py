@@ -4,7 +4,6 @@ import tqdm
 import math
 import torch
 import numpy as np
-import numba as nb
 
 from trainer import train_epoch
 from sorter import parallel_sort
@@ -36,24 +35,27 @@ def test_recall(X, Q, G):
         print()
 
 
-@nb.jit
 def _batch_embed(args, net, vecs: StringDataset, device):
-    embedding = np.empty(shape=(len(vecs), args.embed_dim))
-    for i in tqdm.tqdm(nb.prange(len(vecs)), desc="# batch embedding"):
-        embedding[i, :] = net(vecs[i].to(device)).cpu().data.numpy()
-    return embedding
+    test_loader = torch.utils.data.DataLoader(
+        vecs, batch_size=args.test_batch_size, shuffle=False, num_workers=4
+    )
+    net.eval()
+    embedding = []
+    with tqdm.tqdm(total=len(test_loader), desc="# batch embedding") as p_bar:
+        for i, x in enumerate(test_loader):
+            p_bar.update(1)
+            embedding.append(net(x.to(device)).cpu().data.numpy())
+    return np.concatenate(embedding, axis=0)
 
 
-def cnn_embedding(args, h):
+def cnn_embedding(args, h, data_file):
     if torch.cuda.is_available() and not args.no_cuda:
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    train_loader = TripletString(h.xt, h.nt, h.train_knn, h.train_dist, K=50)
+    train_loader = TripletString(h.xt, h.nt, h.train_knn, h.train_dist, K=args.k)
 
-    model_file = "data/{}_nt{}_epoch{}_model.torch".format(
-        args.dataset, args.nt, args.epochs
-    )
+    model_file = "{}/model.torch".format(data_file)
     if os.path.isfile(model_file):
         model = torch.load(model_file)
     else:
@@ -66,10 +68,16 @@ def cnn_embedding(args, h):
     model.eval()
 
     start_time = time.time()
-
-    item = _batch_embed(args, model.embedding_net, h.xb, device)
-    query = _batch_embed(args, model.embedding_net, h.xq, device)
+    xt = _batch_embed(args, model.embedding_net, h.xt, device)
+    xb = _batch_embed(args, model.embedding_net, h.xb, device)
+    xq = _batch_embed(args, model.embedding_net, h.xq, device)
     embed_time = time.time() - start_time
-    print("# Embedding time: " + str(embed_time) + "\n")
+    print("# Embedding time: " + str(embed_time))
 
-    test_recall(item, query, h.query_knn)
+    np.save("{}/embedding_xb".format(data_file), xb)
+    np.save("{}/embedding_xt".format(data_file), xt)
+    np.save("{}/embedding_xq".format(data_file), xq)
+
+    if args.recall:
+        test_recall(xb, xq, h.query_knn)
+    return xq, xb, xt

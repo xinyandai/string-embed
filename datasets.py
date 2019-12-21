@@ -122,21 +122,14 @@ class TripletString(Dataset):
         self.N, self.K = self.knn.shape
         self.K = min(K, self.K)
         self.strings = strings
-        self.counter = 0
         self.index = np.arange(self.N)
         self.avg_dist = np.mean(self.dist)
-
-    def _shuffle(self):
-        np.random.shuffle(self.index)
+        self.lens = [np.sum(s) for s in self.strings.sig]
 
     def __getitem__(self, idx):
-        if self.counter == self.N:
-            self.counter = 0
-            self._shuffle()
-        self.counter += 1
-        anchor = self.index[idx]
-        positive = self.knn[anchor, randint(0, min(self.N - 1, self.K * 2))]
-        negative = self.knn[anchor, randint(0, min(self.N - 1, self.K * 2))]
+        anchor = idx
+        positive = self.knn[anchor, randint(1, min(self.N - 1, self.K * 2))]
+        negative = self.knn[anchor, randint(1, min(self.N - 1, self.K * 2))]
         pos_dist = self.dist[anchor, positive]
         neg_dist = self.dist[anchor, negative]
         if pos_dist > neg_dist:
@@ -145,8 +138,15 @@ class TripletString(Dataset):
         pos_neg_dist = self.dist[positive, negative]
 
         return (
-            (self.strings[anchor], self.strings[positive], self.strings[negative]),
-            (i / self.avg_dist for i in (pos_dist, neg_dist, pos_neg_dist)),
+            self.strings[anchor],
+            self.strings[positive],
+            self.strings[negative],
+            self.lens[anchor] / self.avg_dist,
+            self.lens[positive] / self.avg_dist,
+            self.lens[negative] / self.avg_dist,
+            pos_dist / self.avg_dist,
+            neg_dist / self.avg_dist,
+            pos_neg_dist / self.avg_dist,
         )
 
     def __len__(self):

@@ -1,64 +1,73 @@
 import time
+import torch
 import torch.optim as optim
 
 from tqdm import tqdm
 from networks import TripletNet
 from networks import TripletLoss
-from networks import TwoLayerCNN, MultiLayerCNN
+from networks import TwoLayerCNN, MultiLayerCNN, QuerylogCNN
 
 
-def updateLearningRate(optimizer, learning_rate):
-    for param_group in optimizer.param_groups:
-        param_group["lr"] = learning_rate
-
-
-def train_epoch(args, train_loader, device):
-    N = len(train_loader)
-    C, M = train_loader.C, train_loader.M
-
+def train_epoch(args, train_set, device):
+    N = len(train_set)
+    C, M = train_set.C, train_set.M
+    train_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=args.batch_size, shuffle=True, num_workers=4
+    )
     if args.dataset == "word":
         EmbeddingNet = TwoLayerCNN
+    elif args.dataset == "querylog":
+        EmbeddingNet = QuerylogCNN
     else:
         EmbeddingNet = MultiLayerCNN
-    net = EmbeddingNet(C, M, embedding=args.embed_dim).to(device)
+    net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel).to(device)
     model = TripletNet(net).to(device)
     losser = TripletLoss()
     model.train()
-    momentum = 0.9
-    lrs = {0: 0.001, 10: 0.001, 5: 0.0001, 15: 0.0001}
-    optimizer = optim.SGD(
-        model.parameters(), lr=0.001, momentum=momentum, weight_decay=5e-4
-    )
+    lrs = {0: 0.005, 10: 0.001, 20: 0.0005, 30: 0.0001, 40: 0.00005}
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+    with tqdm(total=args.epochs * len(train_loader), desc="# training") as p_bar:
+        for epoch in range(args.epochs):
+            if epoch in lrs:
+                optimizer = torch.optim.Adam(model.parameters(), lr=lrs[epoch])
+            agg = 0.0
+            agg_r = 0
+            agg_m = 0
+            optimizer.zero_grad()
 
-    for epoch in range(args.epochs):
-        if epoch in lrs:
-            updateLearningRate(optimizer, lrs[epoch] / args.batch_size)
-        agg = 0.0
-        optimizer.zero_grad()
-        with tqdm(range(N), desc="# training") as p_bar:
             start_time = time.time()
-            for idx in p_bar:
-                x, dists = train_loader[idx]
-                x = (i.to(device) for i in x)
+            for idx, batch in enumerate(train_loader):
+                (
+                    anchor, pos, neg,
+                    anchor_len, pos_len, neg_len,
+                    pos_dist, neg_dist, pos_neg_dist,
+                ) = (i.to(device) for i in batch)
 
-                output = model(x)
-                loss = losser(output, dists, epoch)
-                loss.backward()
+                optimizer.zero_grad()
+                output = model((anchor, pos, neg))
 
-                if idx % args.batch_size == 0 or idx == N - 1:
-                    optimizer.step()
-                    optimizer.zero_grad()
-                agg += loss.item()
-                p_bar.set_description(
-                    str({"Train Epoch": epoch, "Loss": agg / float(idx + 1)})
+                r, m, loss = losser(
+                    output,
+                    (anchor_len, pos_len, neg_len),
+                    (pos_dist, neg_dist, pos_neg_dist),
+                    epoch,
                 )
 
-            print(
-                {
-                    "# Train Epoch": epoch,
-                    "Loss": agg / float(N),
-                    "Time": time.time() - start_time,
-                }
-            )
+                loss.backward()
+                optimizer.step()
 
+                agg += loss.item()
+                agg_r += r.item()
+                agg_m += m.item()
+                p_bar.update(1)
+                p_bar.set_description(
+                    "# Epoch: %3d Time: %.3f Loss: %.3f  r: %.3f m: %.3f"
+                    % (
+                        epoch,
+                        time.time() - start_time,
+                        agg / (idx + 1),
+                        agg_r / (idx + 1),
+                        agg_m / (idx + 1),
+                    )
+                )
     return model

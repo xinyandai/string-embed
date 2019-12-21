@@ -43,13 +43,14 @@ def plot_one(top, location, label, color, linestyle, marker=""):
 
 
 def plot():
-    path = "logs/nt1000nq100"
+    path = "logs/nt1000nq100nb50000"
     dataset = "uniref.txt"
     for top in range(2, 9):
-        plot_one(
-            top, "{}/{}/{}".format(path, "cgk", dataset), "CGK", "black", "--", "*"
-        )
+        plot_one(top, "{}/{}/{}".format(path, "cgk", dataset), "CGK", "blue", "--", "*")
         plot_one(top, "{}/{}/{}".format(path, "cnn", dataset), "CNN", "red", "-.", "s")
+        plot_one(
+            top, "{}/{}/{}".format(path, "gru", dataset), "GRU", "black", "-.", "^"
+        )
         _plot_setting()
 
 
