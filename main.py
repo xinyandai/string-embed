@@ -116,7 +116,7 @@ class DataHandler:
             self.query_knn = np.load(idx_dir + 'query_knn.npy')
 
     def set_nb(self, nb):
-        if nb != len(self.base_ids):
+        if nb >= len(self.base_ids):
             self.base_ids = self.base_ids[:nb]
             self.query_dist = self.query_dist[:, :nb]
             self.query_knn = get_knn(self.query_dist)
@@ -134,35 +134,7 @@ def analyze(q, x, ed):
     plt.title(args.dataset)
     plt.show()
 
-def run_from_train(args):
-    data_file = "model/{}/cnn/{}/nt{}_nq{}{}".format(
-        args.shuffle_seed,
-        args.dataset,
-        args.nt,
-        args.nq,
-        "" if args.maxl == 0 else "_maxl{}".format(args.maxl),
-    )
-    os.makedirs(data_file, exist_ok=True)
-
-    h = DataHandler(args, data_file)
-    h.set_nb(args.nb)
-    if args.embed == "cnn":
-        xq, xb, xt = cnn_embedding(args, h, data_file)
-        # analyze(
-        #     xt * np.mean(h.train_dist),
-        #     xt * np.mean(h.train_dist),
-        #     h.train_dist
-        # )
-        # analyze(
-        #     xq * np.mean(h.train_dist),
-        #     xb * np.mean(h.train_dist),
-        #     h.query_dist
-        # )
-    elif args.embed == "cgk":
-        cgk_embedding(args, h)
-
-
-if __name__ == "__main__":
+def get_args():
     parser = argparse.ArgumentParser(description="HyperParameters for String Embedding")
 
     parser.add_argument("--dataset", type=str, default=None, help="dataset")
@@ -186,4 +158,30 @@ if __name__ == "__main__":
         "--no-cuda", action="store_true", default=False, help="disables GPU training"
     )
     args = parser.parse_args()
-    run_from_train(args)
+    data_file = "model/{}/{}/{}/nt{}_nq{}{}".format(
+        args.shuffle_seed,
+        args.embed,
+        args.dataset,
+        args.nt,
+        args.nq,
+        "" if args.maxl == 0 else "_maxl{}".format(args.maxl),
+    )
+    os.makedirs(data_file, exist_ok=True)
+
+    h = DataHandler(args, data_file)
+    h.set_nb(args.nb)
+    return args, h, data_file
+
+
+def run_from_train(args, h, data_file):
+
+    if args.embed == "cnn":
+        cnn_embedding(args, h, data_file)
+    elif args.embed == "cgk":
+        cgk_embedding(args, h)
+    else:
+        assert False
+
+if __name__ == "__main__":
+    args, h, data_file = get_args()
+    run_from_train(args, h, data_file)
