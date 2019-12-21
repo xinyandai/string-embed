@@ -8,4 +8,6 @@ def l2_dist(q: np.ndarray, x: np.ndarray):
     x = x.T
     sqr_q = np.sum(q ** 2, axis=1, keepdims=True)
     sqr_x = np.sum(x ** 2, axis=0, keepdims=True)
-    return np.sqrt(sqr_q + sqr_x - 2 * q @ x)
+    l2 = sqr_q + sqr_x - 2 * q @ x
+    l2[ np.nonzero(l2 < 0) ] = 0.0
+    return np.sqrt(l2)

@@ -10,28 +10,41 @@ def topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist):
 
 
 def linear_fit(x, y):
-    weights = np.polyfit(x, y, deg=1)
+    x = x.reshape(-1)
+    y = y.reshape(-1)
+    indices = np.argwhere(~np.isnan(x)).reshape(-1)
+    weights = np.polyfit(x[indices], y[indices], deg=1)
     poly1d_fn = np.poly1d(weights)
     return poly1d_fn
 
 
 def ann(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist):
-    scales = [1, 2, 4, 8, 16, 32, 64]
+    scales = [0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
     thresholds = [1, 5, 10, 15, 20, 25, 50, 75, 100, 125, 150]
     train_dist_l2 = l2_dist(xt, xt)
     query_dist_l2 = l2_dist(xq, xb)
     threshold2dist = linear_fit(train_dist, train_dist_l2)
-    print(" threshold\t threshold_l2\t", end='')
+    print("thres\t l2thres\t", end='')
     for scale in scales:
-        print("%d \t" % scale, end='')
+        print("%2.3f\t" % scale, end='')
+    print()
     for threshold in thresholds:
         gt = [np.argwhere(dist <= threshold) for dist in query_dist]
         threshold_l2 = threshold2dist(threshold)
-        print("{}\t {}\t".format(threshold, threshold_l2), end=',\t ')
+        print("%6d\t %.6f\t" % (threshold, threshold_l2), end='')
         for scale in scales:
             items = [np.argwhere(dist <= threshold_l2 * scale) for dist in query_dist_l2]
-            recall = np.mean([len(np.intersect1d(i, j)) / len(i) for i, j in zip(gt, items)])
-            print("%.4f \t" % recall, end='')
+            recall = np.mean([len(np.intersect1d(i, j)) / len(i) for i, j in zip(gt, items) if len(i) > 0])
+            print("%.3f\t" % (recall), end='')
+        print()
+    for threshold in thresholds:
+        gt = [np.argwhere(dist <= threshold) for dist in query_dist]
+        threshold_l2 = threshold2dist(threshold)
+        print("%6d\t %.6f\t" % (threshold, threshold_l2), end='')
+        for scale in scales:
+            items = [np.argwhere(dist <= threshold_l2 * scale) for dist in query_dist_l2]
+            precs = np.mean([len(np.intersect1d(i, j)) / len(j) if len(j) > 0 else 0 for i, j in zip(gt, items) if len(i) > 0])
+            print("%.3f\t" % (precs), end='')
         print()
 
 
@@ -79,7 +92,6 @@ def load_vec():
         xq, xt = xt, xq
 
     xq = xq[:100, :]
-    xb = xb[:100, :]
     ann(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
     topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
 
