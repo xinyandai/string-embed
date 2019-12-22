@@ -116,7 +116,7 @@ class DataHandler:
             self.query_knn = np.load(idx_dir + 'query_knn.npy')
 
     def set_nb(self, nb):
-        if nb >= len(self.base_ids):
+        if nb < len(self.base_ids):
             self.base_ids = self.base_ids[:nb]
             self.query_dist = self.query_dist[:, :nb]
             self.query_knn = get_knn(self.query_dist)

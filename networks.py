@@ -171,8 +171,8 @@ class TripletLoss(nn.Module):
         if epoch in self.Ls:
             self.l, self.r = self.Ls[epoch]
         anchor, positive, negative = x
-        anchor_len, pos_len, neg_len = lens
-        pos_dist, neg_dist, pos_neg_dist = dists
+        anchor_len, pos_len, neg_len = (d.type(torch.float32) for d in lens)
+        pos_dist, neg_dist, pos_neg_dist = (d.type(torch.float32) for d in dists)
 
         anchor_embed_norm = torch.norm(anchor, dim=1)
         pos_embed_norm = torch.norm(positive, dim=1)
