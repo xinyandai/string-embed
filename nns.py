@@ -5,7 +5,8 @@ from utils import l2_dist
 from embed_cnn import test_recall
 
 
-def topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist):
+def topk(xq, xb, xt, query_dist, train_dist):
+    query_knn_ = np.argsort(query_dist)
     test_recall(xb, xq, query_knn_)
 
 
@@ -13,12 +14,12 @@ def linear_fit(x, y):
     x = x.reshape(-1)
     y = y.reshape(-1)
     indices = np.argwhere(~np.isnan(x)).reshape(-1)
-    weights = np.polyfit(x[indices], y[indices], deg=1)
+    weights = np.polyfit(x[indices], y[indices], deg=2)
     poly1d_fn = np.poly1d(weights)
     return poly1d_fn
 
 
-def ann(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist):
+def ann(xq, xb, xt, query_dist, train_dist):
     scales = [0.125, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64]
     thresholds = [1, 5, 10, 15, 20, 25, 50, 75, 100, 125, 150]
     train_dist_l2 = l2_dist(xt, xt)
@@ -60,40 +61,53 @@ def load_vec():
     parser.add_argument("--embed", type=str, default="cnn", help="embedding method")
     parser.add_argument("--maxl", type=int, default=0, help="max length of strings")
     args = parser.parse_args()
-    data_file = "model/{}/{}/{}/nt{}_nq{}{}".format(
-        args.shuffle_seed,
-        args.embed,
-        args.dataset,
-        args.nt,
-        args.nq,
-        "" if args.maxl == 0 else "_maxl{}".format(args.maxl),
-    )
+
+    if args.embed == "cnn":
+        data_file = "model/{}/{}/{}/nt{}_nq{}{}".format(
+            args.shuffle_seed,
+            args.embed,
+            args.dataset,
+            args.nt,
+            args.nq,
+            "" if args.maxl == 0 else "maxl{}".format(args.maxl),
+        )
+    else:
+        data_file = "../ICLRcode/model/{}/{}/nt{}_nq{}{}".format(
+            args.shuffle_seed,
+            args.dataset,
+            args.nt,
+            args.nq,
+            "" if args.maxl == 0 else "maxl{}".format(args.maxl),
+        )
 
     print("# loading embeddings")
-    xb = np.load("{}/embedding_xb.npy".format(data_file))
+    if args.embed == 'gru':
+        xb = np.load("{}/embedding_xb_0.npy".format(data_file))
+    else:
+        xb = np.load("{}/embedding_xb.npy".format(data_file))
+
     xt = np.load("{}/embedding_xt.npy".format(data_file))
     xq = np.load("{}/embedding_xq.npy".format(data_file))
-
+    print(xb.shape, xt.shape, xq.shape)
     data_file = "model/{}/{}/{}/nt{}_nq{}{}".format(
         args.shuffle_seed,
         'cnn',
         args.dataset,
         args.nt,
         args.nq,
-        "" if args.maxl == 0 else "_maxl{}".format(args.maxl),
+        "" if args.maxl == 0 else "maxl{}".format(args.maxl),
     )
     print("# loading distances")
     train_dist = np.load(data_file + '/train_dist.npy')
-    train_knn_ = np.load(data_file + '/train_knn.npy')
     query_dist = np.load(data_file + '/query_dist.npy')
-    query_knn_ = np.load(data_file + '/query_knn.npy')
     if args.embed == 'gru':
         # TODO bugs to fix
         xq, xt = xt, xq
 
-    xq = xq[:100, :]
-    ann(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
-    topk(xq, xb, xt, query_knn_, query_dist, train_knn_, train_dist)
+    query_dist = query_dist[:, :50000]
+    xb = xb[:50000, :]
+    topk(xq, xb, xt, query_dist, train_dist)
+    ann(xq, xb, xt, query_dist, train_dist)
 
 
 if __name__ == "__main__":
