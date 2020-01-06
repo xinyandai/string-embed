@@ -59,7 +59,8 @@ class MultiLayerCNN(nn.Module):
 
         # Size after pooling
         self.flat_size = M // 1024 * C * channel
-        print("self.flat_size ", self.flat_size)
+        print("# self.flat_size ", self.flat_size)
+        self.fc2 = nn.Linear(self.flat_size, self.flat_size)
         self.fc1 = nn.Linear(self.flat_size, embedding)
 
     def forward(self, x: torch.Tensor):
@@ -72,10 +73,216 @@ class MultiLayerCNN(nn.Module):
         x = self.conv(x)
         # print(x.size())
         x = x.view(N, self.flat_size)
+        x = self.fc2(x)
+        x = torch.relu(x)
         x = self.fc1(x)
 
         return x
 
+class EnronCNN(nn.Module):
+    def __init__(self, C, M, embedding, channel):
+        super(EnronCNN, self).__init__()
+        self.C = C
+        self.M = M
+        self.embedding = embedding
+
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+        )
+
+        # Size after pooling
+        self.flat_size = M // 1024 * C * channel
+        print("# self.flat_size ", self.flat_size)
+        self.fc1 = nn.Linear(self.flat_size, embedding)
+
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M = x.shape
+        else:
+            N = 1
+            C, M = x.shape
+        x = x.view(N * C, 1, M)
+        x = self.conv(x)
+        x = x.view(N, self.flat_size)
+        x = self.fc1(x)
+
+        return x
+
+class TrecCNN(nn.Module):
+    def __init__(self, C, M, embedding, channel):
+        super(TrecCNN, self).__init__()
+        self.C = C
+        self.M = M
+        self.embedding = embedding
+
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+        )
+
+        # Size after pooling
+        self.flat_size = M // 1024 * C * channel
+        print("# self.flat_size ", self.flat_size)
+        self.fc1 = nn.Linear(self.flat_size, embedding)
+
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M = x.shape
+        else:
+            N = 1
+            C, M = x.shape
+        x = x.view(N * C, 1, M)
+        x = self.conv(x)
+        x = x.view(N, self.flat_size)
+        x = self.fc1(x)
+
+        return x
+
+class UnirefCNN(nn.Module):
+    def __init__(self, C, M, embedding, channel):
+        super(UnirefCNN, self).__init__()
+        self.C = C
+        self.M = M
+        self.embedding = embedding
+
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.ReLU(),
+
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.ReLU(),
+
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.ReLU(),
+
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+        )
+
+        # Size after pooling
+        self.flat_size = M // 4096 * C * channel
+        print("# self.flat_size ", self.flat_size)
+        self.fc1 = nn.Linear(self.flat_size, embedding)
+        # self.fc2 = nn.Linear(self.flat_size, self.flat_size)
+
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M = x.shape
+        else:
+            N = 1
+            C, M = x.shape
+        x = x.view(N * C, 1, M)
+        x = self.conv(x)
+        x = x.view(N, self.flat_size)
+        # x = self.fc2(x)
+        # x = torch.relu(x)
+        x = self.fc1(x)
+
+        return x
+
+class DBLPCNN(nn.Module):
+    def __init__(self, C, M, embedding, channel):
+        super(DBLPCNN, self).__init__()
+        self.C = C
+        self.M = M
+        self.embedding = embedding
+
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+        )
+
+        # Size after pooling
+        self.flat_size = M // 1024 * C * channel
+        print("# self.flat_size ", self.flat_size)
+        self.fc1 = nn.Linear(self.flat_size, embedding)
+
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M = x.shape
+        else:
+            N = 1
+            C, M = x.shape
+        x = x.view(N * C, 1, M)
+        x = self.conv(x)
+        x = x.view(N, self.flat_size)
+        x = self.fc1(x)
+
+        return x
 
 class QuerylogCNN(nn.Module):
     def __init__(self, C, M, embedding, channel):
@@ -94,11 +301,15 @@ class QuerylogCNN(nn.Module):
             nn.AvgPool1d(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            nn.AvgPool1d(2),
         )
 
         # Size after pooling
-        self.flat_size = M // 32 * C * channel
-        print("self.flat_size ", self.flat_size)
+        self.flat_size = M // 128 * C * channel
+        print("# self.flat_size ", self.flat_size)
         self.fc1 = nn.Linear(self.flat_size, embedding)
 
     def forward(self, x: torch.Tensor):
@@ -154,14 +365,16 @@ class TripletNet(nn.Module):
 
 
 class TripletLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(TripletLoss, self).__init__()
         self.l, self.r = 1, 1
+        step = args.epochs // 5
         self.Ls = {
-            0: (0, 1),
-            15: (1, 0.1),
-            25: (10, 0.1),
-            35: (10, 0.01),
+            step * 0: (0, 10),
+            step * 1: (10, 10),
+            step * 2: (10, 1),
+            step * 3: (5, 0.1),
+            step * 4: (1, 0.01),
         }
 
     def dist(self, ins, pos):
@@ -171,12 +384,7 @@ class TripletLoss(nn.Module):
         if epoch in self.Ls:
             self.l, self.r = self.Ls[epoch]
         anchor, positive, negative = x
-        anchor_len, pos_len, neg_len = (d.type(torch.float32) for d in lens)
         pos_dist, neg_dist, pos_neg_dist = (d.type(torch.float32) for d in dists)
-
-        anchor_embed_norm = torch.norm(anchor, dim=1)
-        pos_embed_norm = torch.norm(positive, dim=1)
-        neg_embed_norm = torch.norm(negative, dim=1)
 
         pos_embed_dist = self.dist(anchor, positive)
         neg_embed_dist = self.dist(anchor, negative)
@@ -184,9 +392,7 @@ class TripletLoss(nn.Module):
 
         threshold = neg_dist - pos_dist
         rank_loss = F.relu(pos_embed_dist - neg_embed_dist + threshold)
-        norm_loss = (anchor_embed_norm - anchor_len) ** 2 + \
-                    (pos_embed_norm - pos_len) ** 2 + \
-                    (neg_embed_norm - neg_len) ** 2
+
         mse_loss = (pos_embed_dist - pos_dist) ** 2 + \
                    (neg_embed_dist - neg_dist) ** 2 + \
                    (pos_neg_embed_dist - pos_neg_dist) ** 2
@@ -194,4 +400,4 @@ class TripletLoss(nn.Module):
         return torch.mean(rank_loss), \
                torch.mean(mse_loss), \
                torch.mean(self.l * rank_loss +
-                          self.r * (0.001 * norm_loss + mse_loss))
+                          self.r *  torch.sqrt(mse_loss))

@@ -39,19 +39,20 @@ def cnn_embedding(args, h, data_file):
         if args.save_model:
             torch.save(model, model_file)
         train_time = time.time() - start_time
-        print("# Training time: " + str(train_time) + "\n")
+        print("# Training time: " + str(train_time))
     model.eval()
 
-    start_time = time.time()
-    xt = _batch_embed(args, model.embedding_net, h.xt, device)
-    xb = _batch_embed(args, model.embedding_net, h.xb, device)
-    xq = _batch_embed(args, model.embedding_net, h.xq, device)
-    embed_time = time.time() - start_time
-    print("# Embedding time: " + str(embed_time))
 
-    np.save("{}/embedding_xb".format(data_file), xb)
-    np.save("{}/embedding_xt".format(data_file), xt)
-    np.save("{}/embedding_xq".format(data_file), xq)
+    xt = _batch_embed(args, model.embedding_net, h.xt, device)
+    start_time = time.time()
+    xb = _batch_embed(args, model.embedding_net, h.xb, device)
+    embed_time = time.time() - start_time
+    xq = _batch_embed(args, model.embedding_net, h.xq, device)
+    print("# Embedding time: " + str(embed_time))
+    if args.save_embed:
+        np.save("{}/embedding_xb".format(data_file), xb)
+        np.save("{}/embedding_xt".format(data_file), xt)
+        np.save("{}/embedding_xq".format(data_file), xq)
 
     if args.recall:
         test_recall(xb, xq, h.query_knn)

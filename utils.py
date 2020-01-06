@@ -16,10 +16,11 @@ def arg_sort(q, x):
     dists = l2_dist(q, x)
     return np.argsort(dists)
 
-
 def intersect(gs, ids):
-    rc = np.mean([len(np.intersect1d(g, list(id))) for g, id in zip(gs, ids)])
-    return rc
+    return np.mean([len(np.intersect1d(g, list(id))) for g, id in zip(gs, ids)])
+
+def intersect_sizes(gs, ids):
+    return np.array([len(np.intersect1d(g, list(id))) for g, id in zip(gs, ids)])
 
 
 def test_recall(X, Q, G):
@@ -36,7 +37,11 @@ def test_recall(X, Q, G):
         ids = sort_idx[:, :t]
         items = np.mean([len(id) for id in ids])
         print("%6d \t %6d \t" % (t, items), end="")
-        for top_k in ks:
-            rc = intersect(G[:, :top_k], ids)
-            print("%.4f \t" % (rc / float(top_k)), end="")
+        tps = [intersect_sizes(G[:, :top_k], ids) / float(top_k) for top_k in ks]
+        rcs = [np.mean(t) for t in tps]
+        vrs = [np.std(t) for t in tps]
+        for rc in rcs:
+            print("%.4f \t" % rc, end="")
+        # for vr in vrs:
+        #     print("%.4f \t" % vr, end="")
         print()

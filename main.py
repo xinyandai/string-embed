@@ -169,6 +169,12 @@ def get_args():
         "--save-model", action="store_true", default=False, help="save cnn model"
     )
     parser.add_argument(
+        "--save-split", action="store_true", default=False, help="save split data folder"
+    )
+    parser.add_argument(
+        "--save-embed", action="store_true", default=False, help="save embedding"
+    )
+    parser.add_argument(
         "--recall", action="store_true", default=False, help="print recall"
     )
     parser.add_argument("--embed", type=str, default="cnn", help="embedding method")
@@ -188,9 +194,11 @@ def get_args():
     os.makedirs(data_file, exist_ok=True)
 
     h = DataHandler(args, data_file)
-#    h.save_split()
-
     h.set_nb(args.nb)
+    if args.save_split:
+        h.save_split()
+        exit()
+
     return args, h, data_file
 
 

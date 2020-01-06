@@ -1,12 +1,7 @@
 import time
-import torch
-import torch.optim as optim
 
 from tqdm import tqdm
-from networks import TripletNet
-from networks import TripletLoss
-from networks import TwoLayerCNN, MultiLayerCNN, QuerylogCNN
-
+from networks import *
 
 def train_epoch(args, train_set, device):
     N = len(train_set)
@@ -18,18 +13,25 @@ def train_epoch(args, train_set, device):
         EmbeddingNet = TwoLayerCNN
     elif args.dataset == "querylog":
         EmbeddingNet = QuerylogCNN
+    elif args.dataset == "enron":
+        EmbeddingNet = EnronCNN
+    elif args.dataset == "trec":
+        EmbeddingNet = TrecCNN
+    elif args.dataset == "dblp":
+        EmbeddingNet = DBLPCNN
+    elif args.dataset == "uniref":
+        EmbeddingNet = UnirefCNN
     else:
         EmbeddingNet = MultiLayerCNN
+
     net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel).to(device)
     model = TripletNet(net).to(device)
-    losser = TripletLoss()
+    losser = TripletLoss(args)
     model.train()
-    lrs = {0: 0.005, 10: 0.001, 20: 0.0005, 30: 0.0001, 40: 0.00005}
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     with tqdm(total=args.epochs * len(train_loader), desc="# training") as p_bar:
         for epoch in range(args.epochs):
-            if epoch in lrs:
-                optimizer = torch.optim.Adam(model.parameters(), lr=lrs[epoch])
             agg = 0.0
             agg_r = 0
             agg_m = 0
