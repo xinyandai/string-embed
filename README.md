@@ -10,6 +10,30 @@ string similarity search.
 
 ### start training
 
-    python main.py
+    python main.py --dataset word --nt 1000 --nq 1000 --epochs 20 --save-split --recall
 
 
+##### optional arguments:
+      -h, --help            show this help message and exit
+      --dataset             dataset name which is under folder ./data/
+      --nt                  # of training samples
+      --nr                  # of generated training samples
+      --nq                  # of query items
+      --nb                  # of base items
+      --k                   # sampling threshold
+      --epochs              # of epochs
+      --shuffle-seed        seed for shuffle
+      --batch-size          batch size for sgd
+      --test-batch-size     batch size for test
+      --channel CHANNEL     # of channels
+      --embed-dim           output dimension
+      --save-model          save cnn model
+      --save-split          save split data folder
+      --save-embed          save embedding
+      --random-train        generate random training samples and replace
+      --random-append-train generate random training samples and append
+      --embed-dir           embedding save location
+      --recall              print recall
+      --embed EMBED         embedding method
+      --maxl MAXL           max length of strings
+      --no-cuda             disables GPU training
