@@ -3,9 +3,13 @@ import time
 from tqdm import tqdm
 from networks import *
 
+
 def train_epoch(args, train_set, device):
     N = len(train_set)
     C, M = train_set.C, train_set.M
+
+    torch.manual_seed(time.time())
+
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=args.batch_size, shuffle=True, num_workers=4
     )
@@ -23,6 +27,9 @@ def train_epoch(args, train_set, device):
         EmbeddingNet = UnirefCNN
     else:
         EmbeddingNet = MultiLayerCNN
+
+    if args.epochs == 0:
+        EmbeddingNet = RandomCNN
 
     net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel).to(device)
     model = TripletNet(net).to(device)

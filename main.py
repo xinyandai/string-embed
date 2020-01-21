@@ -1,6 +1,8 @@
 import os
 import time
 import tqdm
+import random
+import string
 import argparse
 import numpy as np
 
@@ -41,10 +43,9 @@ class DataHandler:
             self.lines = [l[: self.maxl] for l in self.lines]
         self.ni = len(self.lines)
         self.nb = self.ni - self.nq - self.nt
-        self.nb = min(self.nb, args.nb)
 
         start_time = time.time()
-        self.C, self.M, self.char_ids = word2sig(self.lines, max_length=None)
+        self.C, self.M, self.char_ids, self.alphabet = word2sig(self.lines, max_length=None)
         print("# Loading time: {}".format(time.time() - start_time))
 
         self.load_ids()
@@ -59,6 +60,39 @@ class DataHandler:
         self.xb = StringDataset(
             self.C, self.M, [self.char_ids[i] for i in self.base_ids]
         )
+
+    def random_str(self, M):
+        """Generate a random string with a maximum length """
+        return ''.join(random.choice(self.alphabet)
+                       for _ in range(random.randint(1, M)))
+
+    def random_trains(self, replace):
+        root_dir = "folder/{}_{}/{}/{}/{}/".format(
+            self.dataset, self.args.maxl, self.args.shuffle_seed,
+            "random" if replace else "append", self.args.nr
+        )
+
+        os.makedirs(root_dir, exist_ok=True)
+        random_text = root_dir + "random.txt"
+        if not os.path.isfile(random_text):
+            print("# generate random training samples " + random_text)
+            self.train_rnd = [self.random_str(self.M) for _ in range(self.args.nr)]
+            if not replace:
+                print("# appended to training samples " + random_text)
+                self.train_rnd =  [self.lines[i] for i in self.train_ids] + self.train_rnd
+            with open(random_text, "w") as w:
+                w.writelines("%s\n" % line for line in self.train_rnd)
+            self.train_dist, self.train_knn = get_dist_knn(self.train_rnd)
+            np.save(root_dir + "random_train_dist.npy", self.train_dist)
+            np.save(root_dir + "random_train_knn.npy", self.train_knn)
+        else:
+            print("# loading random training samples " + random_text)
+            self.train_rnd = readlines(random_text.format(self.args.dataset))
+            self.train_dist = np.load(root_dir + "random_train_dist.npy")
+            self.train_knn = np.load(root_dir + "random_train_knn.npy")
+
+        _, _, train_sig, alphabet = word2sig(lines=self.train_rnd, max_length=self.M)
+        self.xt = StringDataset(self.C, self.M, train_sig)
 
     def save_split(self):
         root_dir = "folder/{}_{}/{}/".format(
@@ -127,6 +161,8 @@ class DataHandler:
             self.train_knn = np.load(idx_dir + "train_knn.npy")
             self.query_dist = np.load(idx_dir + "query_dist.npy")
             self.query_knn = np.load(idx_dir + "query_knn.npy")
+            print("# train dist : {}".format(self.train_knn.shape))
+            print("# query dist : {}".format(self.query_knn.shape))
 
     def set_nb(self, nb):
         if nb < len(self.base_ids):
@@ -152,6 +188,7 @@ def get_args():
 
     parser.add_argument("--dataset", type=str, default=None, help="dataset")
     parser.add_argument("--nt", type=int, default=1000, help="# of training samples")
+    parser.add_argument("--nr", type=int, default=1000, help="# of generated training samples")
     parser.add_argument("--nq", type=int, default=1000, help="# of query items")
     parser.add_argument("--nb", type=int, default=1385451, help="# of base items")
     parser.add_argument("--k", type=int, default=100, help="# sampling threshold")
@@ -173,6 +210,16 @@ def get_args():
     )
     parser.add_argument(
         "--save-embed", action="store_true", default=False, help="save embedding"
+    )
+    parser.add_argument(
+        "--random-train", action="store_true", default=False, help="generate random training samples and replace"
+    )
+    parser.add_argument(
+        "--random-append-train", action="store_true", default=False, help="generate random training samples and append"
+    )
+
+    parser.add_argument(
+        "--embed-dir", type=str, default="", help="embedding save location"
     )
     parser.add_argument(
         "--recall", action="store_true", default=False, help="print recall"
@@ -197,15 +244,19 @@ def get_args():
     h.set_nb(args.nb)
     if args.save_split:
         h.save_split()
-        exit()
-
+    if args.random_append_train:
+        h.random_trains(replace=False)
+    elif args.random_train:
+        h.random_trains(replace=True)
     return args, h, data_file
 
 
 def run_from_train(args, h, data_file):
 
     if args.embed == "cnn":
-        cnn_embedding(args, h, data_file)
+        xq, xb, xt = cnn_embedding(args, h, data_file)
+        # analyze(xt, xt, h.train_dist)
+        # analyze(xq, xb, h.query_dist)
     elif args.embed == "cgk":
         cgk_embedding(args, h)
     else:

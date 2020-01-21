@@ -15,18 +15,20 @@ def f(x):
     return [Levenshtein.distance(a, b) for b in B]
 
 
-def all_pair_distance(A, B, n_thread):
+def all_pair_distance(A, B, n_thread, progress=True):
+    bar = tqdm if progress else lambda iterable,total,desc : iterable
     def all_pair(A, B, n_thread):
         with Pool(n_thread) as pool:
             start_time = time.time()
             edit = list(
-                tqdm(
+                bar(
                     pool.imap(f, zip(A, [B for _ in A])),
                     total=len(A),
                     desc="# edit distance {}x{}".format(len(A), len(B)),
                 )
             )
-            print("# Calculate edit distance time: {}".format(time.time() - start_time))
+            if progress:
+                print("# Calculate edit distance time: {}".format(time.time() - start_time))
             return np.array(edit)
 
     if len(A) < len(B):
@@ -62,17 +64,20 @@ def word2sig(lines, max_length=None):
 
     all_chars = dict()
     all_chars["counter"] = 0
+    alphabet = ''
 
     def to_ord(c):
         nonlocal all_chars
+        nonlocal alphabet
         if not (c in all_chars):
+            alphabet += c
             all_chars[c] = all_chars["counter"]
             all_chars["counter"] = all_chars["counter"] + 1
         return all_chars[c]
 
     x = [[to_ord(c) for c in line] for line in lines]
 
-    return all_chars["counter"], max_length, x
+    return all_chars["counter"], max_length, x, alphabet
 
 
 def ivecs_read(file):

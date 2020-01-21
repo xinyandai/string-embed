@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+POOL = nn.AvgPool1d
 
 class TwoLayerPool(nn.Module):
     def __init__(self, C, M, embedding=32):
@@ -26,7 +27,6 @@ class TwoLayerPool(nn.Module):
 
         return x
 
-
 class MultiLayerCNN(nn.Module):
     def __init__(self, C, M, embedding, channel):
         super(MultiLayerCNN, self).__init__()
@@ -36,25 +36,25 @@ class MultiLayerCNN(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
         )
 
         # Size after pooling
@@ -79,6 +79,54 @@ class MultiLayerCNN(nn.Module):
 
         return x
 
+class RandomCNN(nn.Module):
+    def __init__(self, C, M, embedding, channel):
+        super(RandomCNN, self).__init__()
+        self.C = C
+        self.M = M
+        self.embedding = embedding
+
+        self.conv = nn.Sequential(
+            nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+            nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
+            POOL(2),
+        )
+
+        # Size after pooling
+        self.flat_size = M // 1024 * C * channel
+        print("# self.flat_size ", self.flat_size)
+        self.fc1 = nn.Linear(self.flat_size, embedding)
+
+    def forward(self, x: torch.Tensor):
+        if len(x.shape) == 3:
+            N, C, M = x.shape
+        else:
+            N = 1
+            C, M = x.shape
+        x = x.view(N * C, 1, M)
+        x = self.conv(x)
+        # print(x.size())
+        x = x.view(N, self.flat_size)
+        # x = self.fc1(x)
+        return x
+
 class EnronCNN(nn.Module):
     def __init__(self, C, M, embedding, channel):
         super(EnronCNN, self).__init__()
@@ -88,25 +136,25 @@ class EnronCNN(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
         )
 
         # Size after pooling
@@ -136,25 +184,25 @@ class TrecCNN(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
         )
 
         # Size after pooling
@@ -184,35 +232,35 @@ class UnirefCNN(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.ReLU(),
 
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.ReLU(),
 
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.ReLU(),
 
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
         )
 
         # Size after pooling
@@ -245,25 +293,25 @@ class DBLPCNN(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
         )
 
         # Size after pooling
@@ -292,19 +340,19 @@ class QuerylogCNN(nn.Module):
         self.embedding = embedding
         self.conv = nn.Sequential(
             nn.Conv1d(1, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
-            nn.AvgPool1d(2),
+            POOL(2),
         )
 
         # Size after pooling
@@ -376,6 +424,14 @@ class TripletLoss(nn.Module):
             step * 3: (5, 0.1),
             step * 4: (1, 0.01),
         }
+        self.Ls = {
+            step * 0: (15, 0),
+            step * 1: (10, 0),
+            step * 2: (8, 0),
+            step * 3: (5, 0.0),
+            step * 4: (1, 0.0),
+        }
+
 
     def dist(self, ins, pos):
         return torch.norm(ins - pos, dim=1)

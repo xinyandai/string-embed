@@ -50,9 +50,12 @@ def cnn_embedding(args, h, data_file):
     xq = _batch_embed(args, model.embedding_net, h.xq, device)
     print("# Embedding time: " + str(embed_time))
     if args.save_embed:
-        np.save("{}/embedding_xb".format(data_file), xb)
-        np.save("{}/embedding_xt".format(data_file), xt)
-        np.save("{}/embedding_xq".format(data_file), xq)
+        if args.embed_dir != "":
+            args.embed_dir = args.embed_dir + "/"
+        os.makedirs("{}/{}".format(data_file, args.embed_dir), exist_ok=True)
+        np.save("{}/{}embedding_xb".format(data_file, args.embed_dir), xb)
+        np.save("{}/{}embedding_xt".format(data_file, args.embed_dir), xt)
+        np.save("{}/{}embedding_xq".format(data_file, args.embed_dir), xq)
 
     if args.recall:
         test_recall(xb, xq, h.query_knn)
