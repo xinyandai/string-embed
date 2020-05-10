@@ -28,9 +28,9 @@ def train_epoch(args, train_set, device):
     else:
         EmbeddingNet = MultiLayerCNN
 
-    if args.epochs == 0:
+    if args.epochs == 0 and args.dataset != "word":
         EmbeddingNet = RandomCNN
-
+    
     net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel).to(device)
     model = TripletNet(net).to(device)
     losser = TripletLoss(args)
