@@ -31,7 +31,7 @@ def train_epoch(args, train_set, device):
     if args.epochs == 0 and args.dataset != "word":
         EmbeddingNet = RandomCNN
     
-    net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel).to(device)
+    net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel, mtc_input=args.mtc).to(device)
     model = TripletNet(net).to(device)
     losser = TripletLoss(args)
     model.train()

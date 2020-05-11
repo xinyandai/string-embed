@@ -201,6 +201,9 @@ def get_args():
         "--test-batch-size", type=int, default=1024, help="batch size for test"
     )
     parser.add_argument("--channel", type=int, default=8, help="# of channels")
+    parser.add_argument(
+        "--mtc",  action="store_true", default=False, help="does we use multi channel as for input"
+    )
     parser.add_argument("--embed-dim", type=int, default=128, help="output dimension")
     parser.add_argument(
         "--save-model", action="store_true", default=False, help="save cnn model"
