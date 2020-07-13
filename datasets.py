@@ -125,6 +125,9 @@ class StringDataset(Dataset):
     def __len__(self):
         return len(self.sig)
 
+    def to_original_dataset(self):
+        self.bert_dataset = False
+
     def to_bert_dataset(self, char_alphabet):
         self.bert_dataset = True
         strs = []

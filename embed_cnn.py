@@ -8,21 +8,22 @@ import numpy as np
 from utils import test_recall
 from trainer import train_epoch
 from datasets import TripletString, StringDataset
-from main import DataHandler
 from transformers import BertTokenizer, BertModel
 
 # bert embedding
 bert_choice = "bert-base-uncased"
 cache_dir = "bert-cache"
-tokenizer = BertTokenizer.from_pretrained(self.bert_choice, cache_dir=cache_dir)
-bert = BertModel.from_pretrained(self.bert_choice, cache_dir=cache_dir)
+tokenizer = BertTokenizer.from_pretrained(bert_choice, cache_dir=cache_dir)
+bert = BertModel.from_pretrained(bert_choice, cache_dir=cache_dir)
 
 
 def _batch_embed(args, net, vecs: StringDataset, device, char_alphabet=None):
-
+    """
+    char_alphabet[dict]: id to char
+    """
     # convert it into a raw string dataset
-    #vecs.to_bert_dataset(char_alphabet)
-    #net = bert
+    if char_alphabet != None:
+        vecs.to_bert_dataset(char_alphabet)
 
     test_loader = torch.utils.data.DataLoader(vecs, batch_size=args.test_batch_size, shuffle=False, num_workers=4)
     net.eval()
@@ -30,14 +31,23 @@ def _batch_embed(args, net, vecs: StringDataset, device, char_alphabet=None):
     with tqdm.tqdm(total=len(test_loader), desc="# batch embedding") as p_bar:
         for i, x in enumerate(test_loader):
             p_bar.update(1)
-            # idx = tokenizer(x, return_tensor="pt")
-            # # 1 x 768
-            # x = bert(**x)[0][0]
-            embedding.append(net(x.to(device)).cpu().data.numpy())
+            if char_alphabet != None:
+                for xx in x:
+                    xx = tokenizer(xx, return_tensors="pt")
+                    # 1 x 768
+                    xx = bert(**xx)[0][0][1].unsqueeze(0)
+                    embedding.append(xx.cpu().data.numpy())
+            else:
+
+                embedding.append(net(x.to(device)).cpu().data.numpy())
+    vecs.to_original_dataset()
     return np.concatenate(embedding, axis=0)
 
 
-def cnn_embedding(args, h: DataHandler, data_file):
+def cnn_embedding(args, h, data_file):
+    """
+    h[DataHandler]
+    """
     if torch.cuda.is_available() and not args.no_cuda:
         device = torch.device("cuda")
     else:
@@ -56,11 +66,17 @@ def cnn_embedding(args, h: DataHandler, data_file):
         print("# Training time: " + str(train_time))
     model.eval()
 
-    xt = _batch_embed(args, model.embedding_net, h.xt, device, char_alphabet=h.alphabet)
+    # check if we use bert here
+    char_alphabet = None
+    if args.epochs == 0:
+        char_alphabet = h.alphabet
+
+    xt = _batch_embed(args, model.embedding_net, h.xt, device, char_alphabet=char_alphabet)
     start_time = time.time()
-    xb = _batch_embed(args, model.embedding_net, h.xb, device, char_alphabet=h.alphabet)
+    xt = []
+    xb = _batch_embed(args, model.embedding_net, h.xb, device, char_alphabet=char_alphabet)
     embed_time = time.time() - start_time
-    xq = _batch_embed(args, model.embedding_net, h.xq, device, char_alphabet=h.alphabet)
+    xq = _batch_embed(args, model.embedding_net, h.xq, device, char_alphabet=char_alphabet)
     print("# Embedding time: " + str(embed_time))
     if args.save_embed:
         if args.embed_dir != "":
