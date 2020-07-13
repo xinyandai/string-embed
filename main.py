@@ -30,7 +30,6 @@ def get_dist_knn(queries, base=None):
 
 
 class DataHandler:
-
     def __init__(self, args, data_f):
         self.data_f = data_f
         self.args = args
@@ -41,7 +40,7 @@ class DataHandler:
 
         self.lines = readlines("data/{}".format(args.dataset))
         if self.maxl != 0:
-            self.lines = [l[:self.maxl] for l in self.lines]
+            self.lines = [l[: self.maxl] for l in self.lines]
         self.ni = len(self.lines)
         self.nb = self.ni - self.nq - self.nt
 
@@ -52,17 +51,26 @@ class DataHandler:
         self.load_ids()
         self.load_dist()
 
-        self.xt = StringDataset(self.C, self.M, [self.char_ids[i] for i in self.train_ids])
-        self.xq = StringDataset(self.C, self.M, [self.char_ids[i] for i in self.query_ids])
-        self.xb = StringDataset(self.C, self.M, [self.char_ids[i] for i in self.base_ids])
+        self.xt = StringDataset(
+            self.C, self.M, [self.char_ids[i] for i in self.train_ids]
+        )
+        self.xq = StringDataset(
+            self.C, self.M, [self.char_ids[i] for i in self.query_ids]
+        )
+        self.xb = StringDataset(
+            self.C, self.M, [self.char_ids[i] for i in self.base_ids]
+        )
 
     def random_str(self, M):
         """Generate a random string with a maximum length """
-        return ''.join(random.choice(self.alphabet) for _ in range(random.randint(1, M)))
+        return ''.join(random.choice(self.alphabet)
+                       for _ in range(random.randint(1, M)))
 
     def random_trains(self, replace):
-        root_dir = "folder/{}_{}/{}/{}/{}/".format(self.dataset, self.args.maxl, self.args.shuffle_seed,
-                                                   "random" if replace else "append", self.args.nr)
+        root_dir = "folder/{}_{}/{}/{}/{}/".format(
+            self.dataset, self.args.maxl, self.args.shuffle_seed,
+            "random" if replace else "append", self.args.nr
+        )
 
         os.makedirs(root_dir, exist_ok=True)
         random_text = root_dir + "random.txt"
@@ -71,7 +79,7 @@ class DataHandler:
             self.train_rnd = [self.random_str(self.M) for _ in range(self.args.nr)]
             if not replace:
                 print("# appended to training samples " + random_text)
-                self.train_rnd = [self.lines[i] for i in self.train_ids] + self.train_rnd
+                self.train_rnd =  [self.lines[i] for i in self.train_ids] + self.train_rnd
             with open(random_text, "w") as w:
                 w.writelines("%s\n" % line for line in self.train_rnd)
             self.train_dist, self.train_knn = get_dist_knn(self.train_rnd)
@@ -87,7 +95,9 @@ class DataHandler:
         self.xt = StringDataset(self.C, self.M, train_sig)
 
     def save_split(self):
-        root_dir = "folder/{}_{}/{}/".format(self.dataset, self.args.maxl, self.args.shuffle_seed)
+        root_dir = "folder/{}_{}/{}/".format(
+            self.dataset, self.args.maxl, self.args.shuffle_seed
+        )
         os.makedirs(root_dir, exist_ok=True)
         with open(root_dir + "query", "w") as w:
             w.writelines("%s\n" % self.lines[i] for i in self.query_ids)
@@ -101,12 +111,14 @@ class DataHandler:
         idx = np.arange(self.ni)
         np.random.shuffle(idx)
         print("# shuffled index: ", idx)
-        self.train_ids = idx[:self.nt]
-        self.query_ids = idx[self.nt:self.nq + self.nt]
-        self.base_ids = idx[self.nq + self.nt:self.nq + self.nt + self.nb]
+        self.train_ids = idx[: self.nt]
+        self.query_ids = idx[self.nt : self.nq + self.nt]
+        self.base_ids = idx[self.nq + self.nt : self.nq + self.nt + self.nb]
 
     def generate_dist(self):
-        self.train_dist, self.train_knn = get_dist_knn([self.lines[i] for i in self.train_ids])
+        self.train_dist, self.train_knn = get_dist_knn(
+            [self.lines[i] for i in self.train_ids]
+        )
         self.query_dist, self.query_knn = get_dist_knn(
             [self.lines[i] for i in self.query_ids],
             [self.lines[i] for i in self.base_ids],
@@ -181,29 +193,45 @@ def get_args():
     parser.add_argument("--nb", type=int, default=1385451, help="# of base items")
     parser.add_argument("--k", type=int, default=100, help="# sampling threshold")
     parser.add_argument("--epochs", type=int, default=4, help="# of epochs")
-    parser.add_argument("--shuffle-seed", type=int, default=808, help="seed for shuffle")
+    parser.add_argument(
+        "--shuffle-seed", type=int, default=808, help="seed for shuffle"
+    )
     parser.add_argument("--batch-size", type=int, default=64, help="batch size for sgd")
-    parser.add_argument("--test-batch-size", type=int, default=1024, help="batch size for test")
+    parser.add_argument(
+        "--test-batch-size", type=int, default=1024, help="batch size for test"
+    )
     parser.add_argument("--channel", type=int, default=8, help="# of channels")
-    parser.add_argument("--mtc", action="store_true", default=False, help="does we use multi channel as for input")
+    parser.add_argument(
+        "--mtc",  action="store_true", default=False, help="does we use multi channel as for input"
+    )
     parser.add_argument("--embed-dim", type=int, default=128, help="output dimension")
-    parser.add_argument("--save-model", action="store_true", default=False, help="save cnn model")
-    parser.add_argument("--save-split", action="store_true", default=False, help="save split data folder")
-    parser.add_argument("--save-embed", action="store_true", default=True, help="save embedding")
-    parser.add_argument("--random-train",
-                        action="store_true",
-                        default=False,
-                        help="generate random training samples and replace")
-    parser.add_argument("--random-append-train",
-                        action="store_true",
-                        default=False,
-                        help="generate random training samples and append")
+    parser.add_argument(
+        "--save-model", action="store_true", default=False, help="save cnn model"
+    )
+    parser.add_argument(
+        "--save-split", action="store_true", default=False, help="save split data folder"
+    )
+    parser.add_argument(
+        "--save-embed", action="store_true", default=False, help="save embedding"
+    )
+    parser.add_argument(
+        "--random-train", action="store_true", default=False, help="generate random training samples and replace"
+    )
+    parser.add_argument(
+        "--random-append-train", action="store_true", default=False, help="generate random training samples and append"
+    )
 
-    parser.add_argument("--embed-dir", type=str, default="", help="embedding save location")
-    parser.add_argument("--recall", action="store_true", default=False, help="print recall")
+    parser.add_argument(
+        "--embed-dir", type=str, default="", help="embedding save location"
+    )
+    parser.add_argument(
+        "--recall", action="store_true", default=False, help="print recall"
+    )
     parser.add_argument("--embed", type=str, default="cnn", help="embedding method")
     parser.add_argument("--maxl", type=int, default=0, help="max length of strings")
-    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables GPU training")
+    parser.add_argument(
+        "--no-cuda", action="store_true", default=False, help="disables GPU training"
+    )
     args = parser.parse_args()
     data_file = "model/{}/{}/{}/nt{}_nq{}{}".format(
         args.shuffle_seed,
