@@ -6,16 +6,12 @@ POOL = nn.AvgPool1d
 
 
 class TwoLayerPool(nn.Module):
-
     def __init__(self, C, M, embedding, mtc_input):
         super(TwoLayerPool, self).__init__()
         self.C = C
         self.M = M
         self.embedding = embedding
-        self.pool = nn.Sequential(
-            nn.MaxPool1d(16),
-            nn.MaxPool1d(16),
-        )
+        self.pool = nn.Sequential(nn.MaxPool1d(16), nn.MaxPool1d(16),)
 
         self.flat_size = C * M // 256
 
@@ -34,7 +30,6 @@ class TwoLayerPool(nn.Module):
 
 
 class MultiLayerCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(MultiLayerCNN, self).__init__()
         self.C = C
@@ -85,7 +80,6 @@ class MultiLayerCNN(nn.Module):
 
 
 class RandomCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(RandomCNN, self).__init__()
         self.C = C
@@ -133,7 +127,6 @@ class RandomCNN(nn.Module):
 
 
 class EnronCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(EnronCNN, self).__init__()
         self.C = C
@@ -181,7 +174,6 @@ class EnronCNN(nn.Module):
 
 
 class TrecCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(TrecCNN, self).__init__()
         self.C = C
@@ -229,7 +221,6 @@ class TrecCNN(nn.Module):
 
 
 class UnirefCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(UnirefCNN, self).__init__()
         self.C = C
@@ -245,6 +236,7 @@ class UnirefCNN(nn.Module):
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             POOL(2),
             nn.ReLU(),
+
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
@@ -252,6 +244,7 @@ class UnirefCNN(nn.Module):
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             POOL(2),
             nn.ReLU(),
+
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
@@ -259,6 +252,7 @@ class UnirefCNN(nn.Module):
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             POOL(2),
             nn.ReLU(),
+
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
             POOL(2),
             nn.Conv1d(channel, channel, 3, 1, padding=1, bias=False),
@@ -287,7 +281,6 @@ class UnirefCNN(nn.Module):
 
 
 class DBLPCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(DBLPCNN, self).__init__()
         self.C = C
@@ -335,7 +328,6 @@ class DBLPCNN(nn.Module):
 
 
 class QuerylogCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(QuerylogCNN, self).__init__()
         self.C = C
@@ -378,7 +370,6 @@ class QuerylogCNN(nn.Module):
 
 
 class TwoLayerCNN(nn.Module):
-
     def __init__(self, C, M, embedding, channel, mtc_input):
         super(TwoLayerCNN, self).__init__()
         self.C = C
@@ -404,7 +395,6 @@ class TwoLayerCNN(nn.Module):
 
 
 class TripletNet(nn.Module):
-
     def __init__(self, embedding_net):
         super(TripletNet, self).__init__()
         self.embedding_net = embedding_net
@@ -415,7 +405,6 @@ class TripletNet(nn.Module):
 
 
 class TripletLoss(nn.Module):
-
     def __init__(self, args):
         super(TripletLoss, self).__init__()
         self.l, self.r = 1, 1
@@ -435,6 +424,7 @@ class TripletLoss(nn.Module):
             step * 4: (1, 0.0),
         }
 
+
     def dist(self, ins, pos):
         return torch.norm(ins - pos, dim=1)
 
@@ -449,7 +439,7 @@ class TripletLoss(nn.Module):
         pos_neg_embed_dist = self.dist(positive, negative)
 
         threshold = neg_dist - pos_dist
-        rank_loss = F.relu(pos_embed_dist - neg_embed_dist + threshold)  #triplet loss
+        rank_loss = F.relu(pos_embed_dist - neg_embed_dist + threshold)
 
         mse_loss = (pos_embed_dist - pos_dist) ** 2 + \
                    (neg_embed_dist - neg_dist) ** 2 + \

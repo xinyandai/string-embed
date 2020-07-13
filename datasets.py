@@ -46,9 +46,6 @@ def readlines(file):
     return [line.decode("utf8", "ignore") for line in lines]
 
 
-from transformers import BertTokenizer
-
-
 def word2sig(lines, max_length=None):
     """
     :param file: the path to the file

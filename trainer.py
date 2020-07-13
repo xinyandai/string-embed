@@ -10,7 +10,9 @@ def train_epoch(args, train_set, device):
 
     torch.manual_seed(time.time())
 
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=args.batch_size, shuffle=True, num_workers=4
+    )
     if args.dataset == "word":
         EmbeddingNet = TwoLayerCNN
     elif args.dataset == "querylog":
@@ -28,7 +30,7 @@ def train_epoch(args, train_set, device):
 
     if args.epochs == 0 and args.dataset != "word":
         EmbeddingNet = RandomCNN
-
+    
     net = EmbeddingNet(C, M, embedding=args.embed_dim, channel=args.channel, mtc_input=args.mtc).to(device)
     model = TripletNet(net).to(device)
     losser = TripletLoss(args)
@@ -45,15 +47,9 @@ def train_epoch(args, train_set, device):
             start_time = time.time()
             for idx, batch in enumerate(train_loader):
                 (
-                    anchor,
-                    pos,
-                    neg,
-                    anchor_len,
-                    pos_len,
-                    neg_len,
-                    pos_dist,
-                    neg_dist,
-                    pos_neg_dist,
+                    anchor, pos, neg,
+                    anchor_len, pos_len, neg_len,
+                    pos_dist, neg_dist, pos_neg_dist,
                 ) = (i.to(device) for i in batch)
 
                 optimizer.zero_grad()
@@ -73,11 +69,14 @@ def train_epoch(args, train_set, device):
                 agg_r += r.item()
                 agg_m += m.item()
                 p_bar.update(1)
-                p_bar.set_description("# Epoch: %3d Time: %.3f Loss: %.3f  r: %.3f m: %.3f" % (
-                    epoch,
-                    time.time() - start_time,
-                    agg / (idx + 1),
-                    agg_r / (idx + 1),
-                    agg_m / (idx + 1),
-                ))
+                p_bar.set_description(
+                    "# Epoch: %3d Time: %.3f Loss: %.3f  r: %.3f m: %.3f"
+                    % (
+                        epoch,
+                        time.time() - start_time,
+                        agg / (idx + 1),
+                        agg_r / (idx + 1),
+                        agg_m / (idx + 1),
+                    )
+                )
     return model
