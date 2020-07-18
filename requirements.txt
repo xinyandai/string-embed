@@ -23,7 +23,7 @@ cryptography==2.8
 cssselect==1.1.0
 cycler==0.10.0
 decorator==4.4.1
-Django==3.0.4
+Django==3.0.7
 django-apscheduler==0.3.0
 django-cors-headers==3.2.1
 django-filter==2.2.0
