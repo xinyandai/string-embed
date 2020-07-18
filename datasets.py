@@ -16,7 +16,8 @@ def f(x):
 
 
 def all_pair_distance(A, B, n_thread, progress=True):
-    bar = tqdm if progress else lambda iterable,total,desc : iterable
+    bar = tqdm if progress else lambda iterable, total, desc: iterable
+
     def all_pair(A, B, n_thread):
         with Pool(n_thread) as pool:
             start_time = time.time()
@@ -25,8 +26,7 @@ def all_pair_distance(A, B, n_thread, progress=True):
                     pool.imap(f, zip(A, [B for _ in A])),
                     total=len(A),
                     desc="# edit distance {}x{}".format(len(A), len(B)),
-                )
-            )
+                ))
             if progress:
                 print("# Calculate edit distance time: {}".format(time.time() - start_time))
             return np.array(edit)
@@ -51,16 +51,14 @@ def word2sig(lines, max_length=None):
     :param file: the path to the file
     :return: 2-dimensional numpy array, of which each row denotes one string's one-hot coding
     """
+
     lens = [len(line) for line in lines]
     if max_length is None:
         max_length = np.max(lens)
         if max_length % 2 != 0:
             max_length += 1
     elif max_length < np.max(lens):
-        warnings.warn(
-            "K is {} while strings may "
-            "exceed the maximum length {}".format(max_length, np.max(lens))
-        )
+        warnings.warn("K is {} while strings may " "exceed the maximum length {}".format(max_length, np.max(lens)))
 
     all_chars = dict()
     all_chars["counter"] = 0
@@ -106,20 +104,41 @@ def fvecs_writer(filename, vecs):
 
 
 class StringDataset(Dataset):
+
     def __init__(self, C, M, sig):
         self.C, self.M = C, M
         self.sig = sig
+        self.bert_dataset = False
+        self.bert_sig = None
 
     def __getitem__(self, index):
-        encode = np.zeros((self.C, self.M), dtype=np.float32)
-        encode[np.array(self.sig[index]), np.arange(len(self.sig[index]))] = 1.0
-        return torch.from_numpy(encode)
+        if self.bert_dataset == False:
+            encode = np.zeros((self.C, self.M), dtype=np.float32)
+            encode[np.array(self.sig[index]), np.arange(len(self.sig[index]))] = 1.0
+            return torch.from_numpy(encode)
+        else:
+            return self.bert_sig[index]
 
     def __len__(self):
         return len(self.sig)
 
+    def to_original_dataset(self):
+        self.bert_dataset = False
+
+    def to_bert_dataset(self, char_alphabet):
+        self.bert_dataset = True
+        strs = []
+        for word in self.sig:
+            new_word = ""
+            for idx in word:
+                new_word += char_alphabet[idx]
+            strs.append(new_word)
+
+        self.bert_sig = strs
+
 
 class TripletString(Dataset):
+
     def __init__(self, strings, lens, knn, dist, K):
 
         self.lens, self.knn, self.dist = lens, knn, dist

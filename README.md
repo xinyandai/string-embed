@@ -10,8 +10,15 @@ string similarity search.
 
 ### start training
 
-    python main.py --dataset word --nt 1000 --nq 1000 --epochs 20 --save-split --recall
+- train CNN-ED model
+```    
+python main.py --dataset word --nt 1000 --nq 1000 --epochs 20 --save-split --recall
+```
 
+- set epoch as 0 to test bert embedding
+```
+python main.py --dataset word --nt 1000 --nq 1000 --epochs 0 --save-split --recall
+```
 
 ##### optional arguments:
       -h, --help            show this help message and exit
