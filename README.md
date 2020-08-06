@@ -15,9 +15,9 @@ string similarity search.
 python main.py --dataset word --nt 1000 --nq 1000 --epochs 20 --save-split --recall
 ```
 
-- set epoch as 0 to test bert embedding
+- test bert embedding
 ```
-python main.py --dataset word --nt 1000 --nq 1000 --epochs 0 --save-split --recall
+python main.py --dataset word --nt 1000 --nq 1000 --bert --save-split --recall
 ```
 
 ##### optional arguments:

@@ -227,6 +227,9 @@ def get_args():
     parser.add_argument(
         "--recall", action="store_true", default=False, help="print recall"
     )
+    parser.add_argument(
+        "--bert", action="store_true", default=False, help="using bert or not"
+    )
     parser.add_argument("--embed", type=str, default="cnn", help="embedding method")
     parser.add_argument("--maxl", type=int, default=0, help="max length of strings")
     parser.add_argument(

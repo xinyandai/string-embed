@@ -68,7 +68,7 @@ def cnn_embedding(args, h, data_file):
 
     # check if we use bert here
     char_alphabet = None
-    if args.epochs == 0:
+    if args.bert:
         char_alphabet = h.alphabet
 
     xt = _batch_embed(args, model.embedding_net, h.xt, device, char_alphabet=char_alphabet)
