@@ -1,4 +1,4 @@
-# String Embedding
+# [Convolutional Embedding for Edit Distance (SIGIR 20)](https://arxiv.org/abs/2001.11692)
 
 In this project, we design and implement a deep learning model, which
 transforms strings into real number vectors  while  preserving  their 
