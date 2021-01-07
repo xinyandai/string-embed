@@ -65,13 +65,6 @@ If you use this code, please cite the following [paper](https://dl.acm.org/doi/a
                Yuxuan Wang and
                Han Yang and
                James Cheng},
-  editor    = {Jimmy Huang and
-               Yi Chang and
-               Xueqi Cheng and
-               Jaap Kamps and
-               Vanessa Murdock and
-               Ji{-}Rong Wen and
-               Yiqun Liu},
   title     = {Convolutional Embedding for Edit Distance},
   booktitle = {Proceedings of the 43rd International {ACM} {SIGIR} conference on
                research and development in Information Retrieval, {SIGIR} 2020, Virtual
@@ -81,9 +74,6 @@ If you use this code, please cite the following [paper](https://dl.acm.org/doi/a
   year      = {2020},
   url       = {https://doi.org/10.1145/3397271.3401045},
   doi       = {10.1145/3397271.3401045},
-  timestamp = {Wed, 16 Sep 2020 13:34:22 +0200},
-  biburl    = {https://dblp.org/rec/conf/sigir/DaiYZW0C20.bib},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
 }
 ```
 
