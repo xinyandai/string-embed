@@ -9,7 +9,8 @@ distance  computation to cheaper L2-distance computation and speed up
 string similarity search. 
 
 ### before run
-please instlal PyTorch refer to [PyTorch](https://pytorch.org/get-started/locally/) 
+Please install PyTorch refer to [PyTorch](https://pytorch.org/get-started/locally/) 
+and install Levenshtein and transformers via 
 ```
 pip install python-Levenshtein
 pip install transformers
