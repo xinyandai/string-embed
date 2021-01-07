@@ -8,6 +8,14 @@ also  be  small.  With  this  model,  we can transform expensive edit
 distance  computation to cheaper L2-distance computation and speed up
 string similarity search. 
 
+### before run
+please instlal PyTorch refer to [PyTorch](https://pytorch.org/get-started/locally/) 
+```
+pip install python-Levenshtein
+pip install transformers
+```
+
+
 ### start training
 
 - train CNN-ED model
@@ -44,3 +52,38 @@ python main.py --dataset word --nt 1000 --nq 1000 --bert --save-split --recall
       --embed EMBED         embedding method
       --maxl MAXL           max length of strings
       --no-cuda             disables GPU training
+
+
+
+# reference
+If you use this code, please cite the following [paper](https://dl.acm.org/doi/abs/10.1145/3397271.3401045)
+```
+@inproceedings{cnned,
+  author    = {Xinyan Dai and
+               Xiao Yan and
+               Kaiwen Zhou and
+               Yuxuan Wang and
+               Han Yang and
+               James Cheng},
+  editor    = {Jimmy Huang and
+               Yi Chang and
+               Xueqi Cheng and
+               Jaap Kamps and
+               Vanessa Murdock and
+               Ji{-}Rong Wen and
+               Yiqun Liu},
+  title     = {Convolutional Embedding for Edit Distance},
+  booktitle = {Proceedings of the 43rd International {ACM} {SIGIR} conference on
+               research and development in Information Retrieval, {SIGIR} 2020, Virtual
+               Event, China, July 25-30, 2020},
+  pages     = {599--608},
+  publisher = {{ACM}},
+  year      = {2020},
+  url       = {https://doi.org/10.1145/3397271.3401045},
+  doi       = {10.1145/3397271.3401045},
+  timestamp = {Wed, 16 Sep 2020 13:34:22 +0200},
+  biburl    = {https://dblp.org/rec/conf/sigir/DaiYZW0C20.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+```
+
