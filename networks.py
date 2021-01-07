@@ -416,13 +416,6 @@ class TripletLoss(nn.Module):
             step * 3: (5, 0.1),
             step * 4: (1, 0.01),
         }
-        self.Ls = {
-            step * 0: (15, 0),
-            step * 1: (10, 0),
-            step * 2: (8, 0),
-            step * 3: (5, 0.0),
-            step * 4: (1, 0.0),
-        }
 
 
     def dist(self, ins, pos):
