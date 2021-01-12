@@ -11,6 +11,7 @@ from multiprocessing import cpu_count
 from utils import l2_dist
 from embed_cnn import cnn_embedding
 from embed_cgk import cgk_embedding
+from k_medoids import k_medoids_embedding
 from datasets import readlines, word2sig, StringDataset, all_pair_distance
 
 
@@ -50,6 +51,10 @@ class DataHandler:
 
         self.load_ids()
         self.load_dist()
+
+        self.string_t = [self.lines[i] for i in self.train_ids]
+        self.string_q = [self.lines[i] for i in self.query_ids]
+        self.string_b = [self.lines[i] for i in self.base_ids]
 
         self.xt = StringDataset(
             self.C, self.M, [self.char_ids[i] for i in self.train_ids]
@@ -265,6 +270,8 @@ def run_from_train(args, h, data_file):
         # analyze(xq, xb, h.query_dist)
     elif args.embed == "cgk":
         cgk_embedding(args, h)
+    elif args.embed == "km":
+        k_medoids_embedding(args, h)
     else:
         assert False
 
