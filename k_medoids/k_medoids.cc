@@ -168,9 +168,9 @@ void k_medoids( int threshold, int n_medoids, int iter,
   };
   const int nb = base_strings.size();
   const int nq = query_strings.size();
-  const int max_child = 32; 
-  const int approx_n_centers = max_child * max_child * max_child ; 
-  const int max_nodes = nb / approx_n_centers; // there are {max_nodes} items in each of cluster
+  const int max_child = 16; 
+  const int max_nodes = 16 * max_child; // there are {16}-{max_nodes} items in each of cluster
+  const int approx_n_centers = nb / max_nodes ; 
 
   std::cout << "# number of items " << nb << "\n"
             << "# approximate number of leaf medoids " << approx_n_centers << "\n"
