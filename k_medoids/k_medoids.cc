@@ -71,8 +71,8 @@ class HierarchicalQuantization {
         }
       }
 #pragma omp parallel for
-      for (auto& child : children_) {
-        child.run();
+      for (int k = 0; k < children_.size(); ++k) {
+        children_[k].run();
       }
     }
 
