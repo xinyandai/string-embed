@@ -1,5 +1,5 @@
 #include <algorithm>
-
+#include <set>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -95,25 +95,32 @@ class HierarchicalQuantization {
       associate();
     }
 
-    int query(int qid, int T) {
+    std::pair<int, std::vector<pair<int, int > > > 
+    query(int qid, int T) {
       if (is_leaf()) {
         int exact_dist = distor_query_(qid, parent_, -1);
-        if (exact_dist <= T)
-          return 0;
-
         int pruned = 0;
+        std::vector<pair<int, int > > res;
         for (int i = 0; i < items_.size(); i++) {
           if (exact_dist - distort_[i] > T) {
             pruned++;
+          } else {
+            int exact_dist = distor_query_(qid, items_[i], -1);
+            if (exact_dist <= T) {
+              res.emplace_back(items_[i], exact_dist);
+            }
           }
         }
-        return pruned;
+        return {pruned, res};
       } else {
         int pruned = 0;
+        std::vector<pair<int, int > > res;
         for (auto& c : children_) {
-          pruned += c.query(qid, T);
+          auto p = c.query(qid, T);
+          pruned += p.first;
+          res.insert(res.end(), p.second.begin(), p.second.end());
         }
-        return pruned;
+        return {pruned, res};
       }
     }
     void set_items(const vector<int >& items, const vector<int >& distorts) {
@@ -139,7 +146,7 @@ class HierarchicalQuantization {
 
 };
 
-void k_medoids( int threshold, int n_medoids, int iter,
+void k_medoids( string res_location, int threshold, int n_medoids, int iter,
                 const vector<string >& base_strings,
                 const vector<string >& base_modified,  
                 const vector<string >& query_strings,
@@ -182,21 +189,40 @@ void k_medoids( int threshold, int n_medoids, int iter,
   std::iota(idx.begin(), idx.end(), 0);
   hq.set_items(idx, dists);
   hq.run();
-  vector<int > pruned(nq, 0);
+  vector<pair<int, vector<pair<int, int > > > > res(nq);
 
-  vector<int > ts = {1, 10, 40};
+  vector<int > ts = {40};
+
+  
   for (int T : ts) {
-#pragma omp parallel for
+    timer t;
+// #pragma omp parallel for
     for (int qi = 0; qi < nq; ++qi) {
-      pruned[qi] = hq.query(qi, T);
+      res[qi] = hq.query(qi, T);
     }
-    
+    std::cout << "elapse milliseconds : " << t.elapsed() << "ms \n";
     long sum_pruned = 0;
-    for (int p : pruned) {
-      sum_pruned += p;
+    for (auto& p : res) {
+      sum_pruned += p.first;
     }
     std::cout << "average number of pruned rate when T=" << T 
               << ", pruned="  << 1.0 * sum_pruned / nq / nb << "\n"; 
+
+    string gt_file_name = res_location + "_threshold" + to_string(T);
+    ofstream output_stream(gt_file_name);
+    int count = 0;
+    for (auto& p : res) {
+      count +=  p.second.size();
+    }
+    output_stream << count << "\n";
+    for (auto& p : res) {
+      output_stream << p.second.size() << " : ";
+      for (pair<int, int> it : p.second) {
+        output_stream << it.first + 1 << "|" << it.second << "\t";
+      }
+      output_stream << endl;
+    }
+    output_stream.close();
   }
 }
 
@@ -215,6 +241,7 @@ int main(int argc, char **argv) {
 
   string base_location = argv[1];
   string query_location = argv[2];
+  string res_location = base_location.substr(0, base_location.size() - 4) + "res";
 
   int threshold = atoi(argv[3]);
   int n_medoids = atoi(argv[4]);
@@ -244,7 +271,7 @@ int main(int argc, char **argv) {
     for(int k = 0;k < 8; k++) query_modified[j].push_back(j>>(8*k));
   }
 
-  k_medoids(threshold, n_medoids, 10, 
+  k_medoids(res_location, threshold, n_medoids, 10, 
             base_strings, base_modified, 
             query_strings, query_modified);
 
