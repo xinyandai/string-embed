@@ -10,7 +10,7 @@ def _cgk(parameters):
     x, (h, M) = parameters
     i = 0
     j = 0
-    out = np.empty(3 * M, np.int)
+    out = np.zeros(3 * M, np.int)
     while j < 3 * M and i < len(x):
         out[j] = x[i]
         i += h[j][x[i]]
