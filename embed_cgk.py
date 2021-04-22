@@ -7,10 +7,11 @@ from multiprocessing import Pool, cpu_count
 
 
 def _cgk(parameters):
-    x, (h, M) = parameters
+    x, (h, M, C) = parameters
     i = 0
     j = 0
-    out = np.zeros(3 * M, np.int)
+    out = np.empty(3 * M, np.int)
+    out.fill(C)
     while j < 3 * M and i < len(x):
         out[j] = x[i]
         i += h[j][x[i]]
@@ -18,10 +19,10 @@ def _cgk(parameters):
     return out
 
 
-def cgk_string(h, strings, M):
+def cgk_string(h, strings, M, C):
     with Pool(cpu_count()) as pool:
         start_time = time.time()
-        jobs = pool.imap(_cgk, zip(strings, [(h, M) for _ in strings]))
+        jobs = pool.imap(_cgk, zip(strings, [(h, M, C) for _ in strings]))
         cgk_list = list(tqdm(jobs, total=len(strings), desc="# CGK embedding"))
         print("# CGK embedding time: {}".format(time.time() - start_time))
         return np.array(cgk_list)
@@ -73,8 +74,8 @@ def distance(xq, xb):
 def cgk_embedding(args, datahandler):
     h = random_seed(datahandler.M, datahandler.C)
 
-    xq = cgk_string(h, datahandler.xq.sig, datahandler.M)
-    xb = cgk_string(h, datahandler.xb.sig, datahandler.M)
+    xq = cgk_string(h, datahandler.xq.sig, datahandler.M, datahandler.C)
+    xb = cgk_string(h, datahandler.xb.sig, datahandler.M, datahandler.C)
 
     dist = distance(xq, xb)
     sort = np.argsort(dist)
