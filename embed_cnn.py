@@ -55,7 +55,9 @@ def cnn_embedding(args, h, data_file):
     train_loader = TripletString(h.xt, h.nt, h.train_knn, h.train_dist, K=args.k)
 
     model_file = "{}/model.torch".format(data_file)
-    if os.path.isfile(model_file):
+    
+    # previously checked for an existing model; removed so that we always retrain
+    if False:
         model = torch.load(model_file)
     else:
         start_time = time.time()
