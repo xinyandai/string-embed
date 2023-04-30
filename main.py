@@ -199,6 +199,9 @@ def get_args():
     parser.add_argument("--k", type=int, default=100, help="# sampling threshold")
     parser.add_argument("--epochs", type=int, default=4, help="# of epochs")
     parser.add_argument(
+        "--leaky_relu", type=float, default=0, help="modify loss function with specified hyper parameter"
+    )
+    parser.add_argument(
         "--shuffle-seed", type=int, default=808, help="seed for shuffle"
     )
     parser.add_argument("--batch-size", type=int, default=64, help="batch size for sgd")

@@ -421,7 +421,7 @@ class TripletLoss(nn.Module):
     def dist(self, ins, pos):
         return torch.norm(ins - pos, dim=1)
 
-    def forward(self, x, lens, dists, epoch):
+    def forward(self, args, x, lens, dists, epoch):
         if epoch in self.Ls:
             self.l, self.r = self.Ls[epoch]
         anchor, positive, negative = x
@@ -432,7 +432,12 @@ class TripletLoss(nn.Module):
         pos_neg_embed_dist = self.dist(positive, negative)
 
         threshold = neg_dist - pos_dist
-        rank_loss = F.relu(pos_embed_dist - neg_embed_dist + threshold)
+        
+        # change activation function based on command line arguments
+        if args.leaky_relu != 0:
+            rank_loss = F.leaky_relu(pos_embed_dist - neg_embed_dist + threshold, args.leaky_relu)
+        else:
+            rank_loss = F.relu(pos_embed_dist - neg_embed_dist + threshold)
 
         mse_loss = (pos_embed_dist - pos_dist) ** 2 + \
                    (neg_embed_dist - neg_dist) ** 2 + \

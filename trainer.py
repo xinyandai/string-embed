@@ -56,10 +56,11 @@ def train_epoch(args, train_set, device):
                 output = model((anchor, pos, neg))
 
                 r, m, loss = losser(
+                    args,
                     output,
                     (anchor_len, pos_len, neg_len),
                     (pos_dist, neg_dist, pos_neg_dist),
-                    epoch,
+                    epoch
                 )
 
                 loss.backward()
