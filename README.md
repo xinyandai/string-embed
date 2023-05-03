@@ -1,12 +1,20 @@
 # [Convolutional Embedding for Edit Distance (SIGIR 20)](https://arxiv.org/abs/2001.11692)
 
-In this project, we design and implement a deep learning model, which
+Original model - In this project, we design and implement a deep learning model, which
 transforms strings into real number vectors  while  preserving  their 
 neighboring relation.  Specifically,  if  the  edit  distance  of two 
 strings x and y is small,  the L2-distance of their embeddings should 
 also  be  small.  With  this  model,  we can transform expensive edit 
 distance  computation to cheaper L2-distance computation and speed up
 string similarity search. 
+
+Updated model proposed by Kobie Arndt, Nathan Ballay and William Kressner - In the modified version
+of this project, we added the ability to invoke a new loss function known as LeakyReLU.  The 
+user can specify the value for the hyper parameter used.  Our intentions for this proposal 
+is to address the "dying ReLU" problem in hopes to achieve an improved item-recall.  The project
+is ran the same as below.  Note: commands were run using python3 instead of python.
+
+
 
 ### before run
 Please install PyTorch refer to [PyTorch](https://pytorch.org/get-started/locally/) 
@@ -38,6 +46,7 @@ python main.py --dataset word --nt 1000 --nq 1000 --bert --save-split --recall
       --nb                  # of base items
       --k                   # sampling threshold
       --epochs              # of epochs
+      --leaky_relu          # modify loss function with specified hyper parameter
       --shuffle-seed        seed for shuffle
       --batch-size          batch size for sgd
       --test-batch-size     batch size for test
